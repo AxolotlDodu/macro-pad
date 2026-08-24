@@ -6,6 +6,7 @@ public static class ActionFactory
         {
             "launch" => new LaunchAction(config.Target),
             "url" => new UrlAction(config.Target),
+            "keystroke" => new KeystrokeAction(config.Target),
             _ => null
         };
     }

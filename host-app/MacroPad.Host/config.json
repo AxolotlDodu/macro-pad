@@ -2,6 +2,6 @@
   "bindings": {
     "0": { "type": "launch", "target": "notepad.exe" },
     "1": { "type": "url", "target": "https://github.com" },
-    "2": { "type": "keystroke", "target": "^{c}" }
+    "2": { "type": "keystroke", "target": "ctrl+shift+esc" }
   }
 }
