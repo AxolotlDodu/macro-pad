@@ -1,0 +1,9 @@
+# Arduino
+*.hex
+build/
+
+# C# / Visual Studio
+bin/
+obj/
+*.user
+.vs/
