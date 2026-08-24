@@ -11,4 +11,10 @@
     <PackageReference Include="HidSharp" Version="2.6.4" />
   </ItemGroup>
 
+  <ItemGroup>
+  <None Update="config.json">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </None>
+</ItemGroup>
+
 </Project>
