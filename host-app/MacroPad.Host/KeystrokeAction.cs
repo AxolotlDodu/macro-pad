@@ -31,6 +31,8 @@ public class KeystrokeAction : IAction, IDisposable
         "enter" or "return" => KeyCode.VcEnter,
         "space" => KeyCode.VcSpace,
         "delete" or "del" => KeyCode.VcDelete,
+        _ when System.Text.RegularExpressions.Regex.IsMatch(name, @"^f([1-9]|1[0-9]|2[0-4])$")
+            => Enum.Parse<KeyCode>($"Vc{name.ToUpperInvariant()}"),
         _ when name.Length == 1 => Enum.Parse<KeyCode>($"Vc{char.ToUpperInvariant(name[0])}"),
         _ => throw new ArgumentException($"Touche inconnue : {name}")
     };

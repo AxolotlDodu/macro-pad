@@ -2,6 +2,13 @@
   "bindings": {
     "0": { "type": "launch", "target": "notepad.exe" },
     "1": { "type": "url", "target": "https://github.com" },
-    "2": { "type": "keystroke", "target": "ctrl+shift+esc" }
+    "2": { "type": "keystroke", "target": "ctrl+shift+esc" },
+    "3": { "type": "keystroke", "target": "f13" },
+    "4": {
+      "type": "http",
+      "method": "PUT",
+      "target": "http://{sonar}/volumeSettings/classic/chatCapture/Mute/true"
+    },
+    "5": { "type": "sonar-toggle-mute", "target": "media" }
   }
 }
