@@ -1,6 +1,8 @@
 using SharpHook.Data;
 using SharpHook.Simulation;
 
+namespace MacroPad.Host;
+
 public class KeystrokeAction : IAction, IDisposable
 {
     private readonly KeyCode[] _keys;

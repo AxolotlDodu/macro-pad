@@ -1,3 +1,5 @@
+namespace MacroPad.Host;
+
 public static class ActionFactory
 {
     public static IAction? Create(BindingConfig config, string? sonarAddress)

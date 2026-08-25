@@ -1,0 +1,34 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MacroPad.Host"
+        x:Class="MacroPad.Host.ConfigWindow"
+        Title="MacroPad - Configuration"
+        Width="640" Height="520">
+    <DockPanel Margin="12">
+        <Button DockPanel.Dock="Bottom" Content="Enregistrer" Click="OnSaveClick"
+                HorizontalAlignment="Right" Margin="0,12,0,0"/>
+        <ScrollViewer>
+            <ItemsControl x:Name="BindingsList">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BindingRowViewModel">
+                        <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="0,8">
+                            <Grid ColumnDefinitions="50,140,*,70">
+                                <TextBlock Grid.Column="0" Text="{Binding Bit}" VerticalAlignment="Center"/>
+                                <ComboBox Grid.Column="1" SelectedItem="{Binding Type}" Margin="4,0">
+                                    <x:String>none</x:String>
+                                    <x:String>launch</x:String>
+                                    <x:String>url</x:String>
+                                    <x:String>keystroke</x:String>
+                                    <x:String>http</x:String>
+                                    <x:String>sonar-toggle-mute</x:String>
+                                </ComboBox>
+                                <TextBox Grid.Column="2" Text="{Binding Target}" Watermark="Cible" Margin="4,0"/>
+                                <TextBox Grid.Column="3" Text="{Binding Method}" Watermark="Méthode" Margin="4,0"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

@@ -1,3 +1,5 @@
+namespace MacroPad.Host;
+
 public class BindingConfig
 {
     public string Type { get; set; } = "";

@@ -1,6 +1,8 @@
 using System.Net.Http;
 using System.Text.Json;
 
+namespace MacroPad.Host;
+
 public class SonarToggleMuteAction : IAction
 {
     private static readonly HttpClient Client = CreateClient();

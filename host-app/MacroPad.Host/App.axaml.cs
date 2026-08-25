@@ -4,6 +4,8 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 
+namespace MacroPad.Host;
+
 public partial class App : Application
 {
     private CancellationTokenSource? _cts;
@@ -12,8 +14,14 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        if (Program.ShowConfig)
+        {
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                desktop.MainWindow = new ConfigWindow();
+
+            base.OnFrameworkInitializationCompleted();
+            return;
+        }
 
         var trayIcons = TrayIcon.GetIcons(this);
         var trayIcon = trayIcons![0];

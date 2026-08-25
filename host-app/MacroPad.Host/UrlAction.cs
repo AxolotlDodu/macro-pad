@@ -1,5 +1,7 @@
 using System.Diagnostics;
 
+namespace MacroPad.Host;
+
 public class UrlAction : IAction
 {
     private readonly string _target;

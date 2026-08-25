@@ -1,14 +1,16 @@
 {
   "bindings": {
-    "0": { "type": "launch", "target": "notepad.exe" },
-    "1": { "type": "url", "target": "https://github.com" },
-    "2": { "type": "keystroke", "target": "ctrl+shift+esc" },
-    "3": { "type": "keystroke", "target": "f13" },
-    "4": {
-      "type": "http",
-      "method": "PUT",
-      "target": "http://{sonar}/volumeSettings/classic/chatCapture/Mute/true"
-    },
-    "5": { "type": "sonar-toggle-mute", "target": "media" }
+    "0": { "type": "keystroke", "target": "f13" },
+    "1": { "type": "keystroke", "target": "f14" },
+    "2": { "type": "keystroke", "target": "f15" },
+    "3": { "type": "keystroke", "target": "f16" },
+    "4": { "type": "keystroke", "target": "f17" },
+    "5": { "type": "keystroke", "target": "f18" },
+    "6": { "type": "keystroke", "target": "f19" },
+    "7": { "type": "keystroke", "target": "f20" },
+    "8": { "type": "keystroke", "target": "f21" },
+    "9": { "type": "keystroke", "target": "f22" },
+    "10": { "type": "keystroke", "target": "f23" },
+    "11": { "type": "keystroke", "target": "f24" }
   }
 }

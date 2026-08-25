@@ -1,6 +1,8 @@
 using System.Text.Json;
 using HidSharp;
 
+namespace MacroPad.Host;
+
 public class PadService
 {
     private const ushort VendorId = 0x2341;

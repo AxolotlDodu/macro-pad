@@ -1,5 +1,6 @@
 using System.Diagnostics;
 
+namespace MacroPad.Host;
 public class LaunchAction : IAction
 {
     private readonly string _target;

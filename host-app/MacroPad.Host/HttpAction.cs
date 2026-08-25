@@ -1,6 +1,8 @@
 using System.Net.Http;
 using System.Text;
 
+namespace MacroPad.Host;
+
 public class HttpAction : IAction
 {
     private static readonly HttpClient Client = new();

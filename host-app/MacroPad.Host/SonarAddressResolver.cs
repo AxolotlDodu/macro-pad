@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 
+namespace MacroPad.Host;
 public static class SonarAddressResolver
 {
     private static readonly HttpClient Client = CreateInsecureClient();
