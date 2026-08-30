@@ -6,6 +6,9 @@ public class PadService
 {
     private const ushort VendorId = 0x2341;
     private const ushort ProductId = 0x8036;
+
+    /// <summary>Bit du bouton pin 14 (10e switch). Verrouillé sur le changement de page,
+    /// quelle que soit la config chargée — voir RunAsync.</summary>
     private const int ReservedPageSwitchBit = 9;
 
     private readonly CancellationToken _token;
@@ -23,6 +26,10 @@ public class PadService
 
     private readonly object _reloadLock = new();
 
+    // Stream d'écriture vers le MacroPad (écran)
+    private HidStream? _outputStream;
+    private readonly object _streamLock = new();
+
     public PadService(CancellationToken token) => _token = token;
 
     public async Task RunAsync()
@@ -37,6 +44,7 @@ public class PadService
         _pageSwitcher.PageChanged += SetActivePage;
 
         _ = Task.Run(() => new AppFocusWatcher(() => _pages, _pageSwitcher, _token).RunAsync(), _token);
+        _ = Task.Run(() => TimeBroadcastLoopAsync(), _token);
 
         StartConfigWatcher();
 
@@ -123,8 +131,6 @@ public class PadService
 
     private async Task ReloadConfigAsync()
     {
-        // Laisse le temps à l'écriture de se terminer + absorbe les événements en rafale
-        // (une seule sauvegarde déclenche souvent plusieurs Changed).
         try { await Task.Delay(300, _token); } catch (OperationCanceledException) { return; }
 
         lock (_reloadLock)
@@ -151,53 +157,112 @@ public class PadService
             _activeEncoderActions = _encoderActionsByPage.GetValueOrDefault(pageName, new Dictionary<int, IEncoderAction>());
         }
         Console.WriteLine($"[PadService] Page active : {pageName}");
+
+        var index = _pages.FindIndex(p => p.Name == pageName);
+        if (index >= 0) SendPageInfo(pageName, index + 1, _pages.Count);
+    }
+
+    private void SendPageInfo(string name, int index, int total)
+    {
+        var bytes = System.Text.Encoding.ASCII.GetBytes(name);
+        var len = Math.Min(bytes.Length, 20);
+
+        var report = new byte[64];
+        report[0] = 0x01; // CMD_SET_PAGE
+        report[1] = (byte)index;
+        report[2] = (byte)total;
+        report[3] = (byte)len;
+        Array.Copy(bytes, 0, report, 4, len);
+
+        WriteOutputReport(report);
+    }
+
+    private async Task TimeBroadcastLoopAsync()
+    {
+        while (!_token.IsCancellationRequested)
+        {
+            var now = DateTime.Now;
+            var report = new byte[64];
+            report[0] = 0x02; // CMD_SET_TIME
+            report[1] = (byte)now.Hour;
+            report[2] = (byte)now.Minute;
+            WriteOutputReport(report);
+
+            var delay = 60 - now.Second;
+            await Task.Delay(TimeSpan.FromSeconds(delay), _token);
+        }
+    }
+
+    private void WriteOutputReport(byte[] report)
+    {
+        HidStream? s;
+        lock (_streamLock) { s = _outputStream; }
+        if (s is null) return;
+
+        var framed = new byte[report.Length + 1];
+        framed[0] = 0x00; // Report ID
+        Array.Copy(report, 0, framed, 1, report.Length);
+
+        try { s.Write(framed); }
+        catch (Exception ex) { Console.WriteLine($"[PadService] Échec envoi rapport affichage : {ex.Message}"); }
     }
 
     private async Task ListenAsync(HidDevice device)
     {
         using var stream = device.Open();
-        stream.ReadTimeout = Timeout.Infinite;
-        var buffer = new byte[device.GetMaxInputReportLength()];
-        ushort lastMask = 0;
+        lock (_streamLock) { _outputStream = stream; }
+        
+        SendPageInfo(_pageSwitcher.CurrentPageName, _pages.FindIndex(p => p.Name == _pageSwitcher.CurrentPageName) + 1, _pages.Count);
 
-        while (!_token.IsCancellationRequested)
+        try
         {
-            int count = stream.Read(buffer, 0, buffer.Length);
-            if (count == 0) throw new IOException("Rapport vide");
+            stream.ReadTimeout = Timeout.Infinite;
+            var buffer = new byte[device.GetMaxInputReportLength()];
+            ushort lastMask = 0;
 
-            int offset = count > 2 ? 1 : 0;
-            ushort mask = (ushort)(buffer[offset] | (buffer[offset + 1] << 8));
-            sbyte enc1Delta = unchecked((sbyte)buffer[offset + 2]);
-            sbyte enc2Delta = unchecked((sbyte)buffer[offset + 3]);
-
-            Dictionary<int, IAction> bitActions;
-            Dictionary<int, IEncoderAction> encoderActions;
-            lock (_activeLock)
+            while (!_token.IsCancellationRequested)
             {
-                bitActions = _activeBitActions;
-                encoderActions = _activeEncoderActions;
-            }
+                int count = stream.Read(buffer, 0, buffer.Length);
+                if (count == 0) throw new IOException("Rapport vide");
 
-            if (mask != lastMask)
-            {
-                ushort changed = (ushort)(mask ^ lastMask);
-                for (int bit = 0; bit < 12; bit++)
+                int offset = count > 2 ? 1 : 0;
+                ushort mask = (ushort)(buffer[offset] | (buffer[offset + 1] << 8));
+                sbyte enc1Delta = unchecked((sbyte)buffer[offset + 2]);
+                sbyte enc2Delta = unchecked((sbyte)buffer[offset + 3]);
+
+                Dictionary<int, IAction> bitActions;
+                Dictionary<int, IEncoderAction> encoderActions;
+                lock (_activeLock)
                 {
-                    if ((changed & (1 << bit)) != 0 && (mask & (1 << bit)) != 0
-                        && bitActions.TryGetValue(bit, out var action))
-                    {
-                        try { action.Execute(); }
-                        catch (Exception ex) { Console.WriteLine($"Erreur action bit {bit} : {ex.Message}"); }
-                    }
+                    bitActions = _activeBitActions;
+                    encoderActions = _activeEncoderActions;
                 }
-                lastMask = mask;
+
+                if (mask != lastMask)
+                {
+                    ushort changed = (ushort)(mask ^ lastMask);
+                    for (int bit = 0; bit < 12; bit++)
+                    {
+                        if ((changed & (1 << bit)) != 0 && (mask & (1 << bit)) != 0
+                            && bitActions.TryGetValue(bit, out var action))
+                        {
+                            try { action.Execute(); }
+                            catch (Exception ex) { Console.WriteLine($"Erreur action bit {bit} : {ex.Message}"); }
+                        }
+                    }
+                    lastMask = mask;
+                }
+
+                if (enc1Delta != 0 && encoderActions.TryGetValue(1, out var e1))
+                    SafeExecute(() => e1.Execute(enc1Delta));
+
+                if (enc2Delta != 0 && encoderActions.TryGetValue(2, out var e2))
+                    SafeExecute(() => e2.Execute(enc2Delta));
             }
-
-            if (enc1Delta != 0 && encoderActions.TryGetValue(1, out var e1))
-                SafeExecute(() => e1.Execute(enc1Delta));
-
-            if (enc2Delta != 0 && encoderActions.TryGetValue(2, out var e2))
-                SafeExecute(() => e2.Execute(enc2Delta));
+        }
+        finally
+        {
+            lock (_streamLock) { if (_outputStream == stream) _outputStream = null; }
         }
     }
 
