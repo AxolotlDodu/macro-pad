@@ -1,34 +1,82 @@
-using System.Text.Json;
 using HidSharp;
 
 namespace MacroPad.Host;
 
 public class PadService
 {
+    // Champ à ajouter en haut de la classe
+    private HidStream? _outputStream;
+    private List<PageConfig> _pages = new();
+    private readonly object _streamLock = new();
     private const ushort VendorId = 0x2341;
     private const ushort ProductId = 0x8036;
+
+    /// <summary>Bit du bouton pin 14 (10e switch). Verrouillé sur le changement de page,
+    /// quelle que soit la config chargée — voir RunAsync.</summary>
+    private const int ReservedPageSwitchBit = 9;
+
     private readonly CancellationToken _token;
+    private IPageSwitcher _pageSwitcher = null!;
+
+    private Dictionary<string, Dictionary<int, IAction>> _bitActionsByPage = new();
+    private Dictionary<string, Dictionary<int, IEncoderAction>> _encoderActionsByPage = new();
+
+    private readonly object _activeLock = new();
+    private Dictionary<int, IAction> _activeBitActions = new();
+    private Dictionary<int, IEncoderAction> _activeEncoderActions = new();
 
     public PadService(CancellationToken token) => _token = token;
 
     public async Task RunAsync()
     {
         var configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
-        var config = JsonSerializer.Deserialize<Config>(File.ReadAllText(configPath),
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new Config();
-
+        var config = Config.Load(configPath);
         var sonarAddress = await SonarAddressResolver.GetSonarAddressAsync();
 
-        var actions = new Dictionary<int, IAction>();
-        foreach (var (key, binding) in config.Bindings)
-        {
-            if (binding.Target.Contains("{sonar}") && sonarAddress is not null)
-                binding.Target = binding.Target.Replace("{sonar}", sonarAddress);
+        _pageSwitcher = new PageSwitcher(config.Pages);
+        _pages = config.Pages;
+        _ = Task.Run(() => TimeBroadcastLoopAsync(), _token);
+        var cycleAction = new SwitchPageAction(_pageSwitcher, null);
 
-            var action = ActionFactory.Create(binding, sonarAddress);
-            if (action is not null && int.TryParse(key, out var bit))
-                actions[bit] = action;
+        foreach (var page in config.Pages)
+        {
+            var bitActions = new Dictionary<int, IAction>();
+            foreach (var (key, binding) in page.Bindings)
+            {
+                if (!int.TryParse(key, out var bit)) continue;
+
+                if (bit == ReservedPageSwitchBit)
+                {
+                    Console.WriteLine($"[PadService] Page \"{page.Name}\" : binding sur le bit {ReservedPageSwitchBit} ignoré (réservé au changement de page).");
+                    continue;
+                }
+
+                if (binding.Target.Contains("{sonar}") && sonarAddress is not null)
+                    binding.Target = binding.Target.Replace("{sonar}", sonarAddress);
+
+                var action = ActionFactory.Create(binding, sonarAddress, _pageSwitcher);
+                if (action is not null) bitActions[bit] = action;
+            }
+
+            // Verrouillé : quoi qu'il arrive, le bit 9 fait tourner les pages.
+            bitActions[ReservedPageSwitchBit] = cycleAction;
+
+            var encoderActions = new Dictionary<int, IEncoderAction>();
+            foreach (var (key, enc) in page.Encoders)
+            {
+                if (!int.TryParse(key, out var idx)) continue;
+                var action = ActionFactory.CreateEncoder(enc, sonarAddress);
+                if (action is not null) encoderActions[idx] = action;
+            }
+
+            _bitActionsByPage[page.Name] = bitActions;
+            _encoderActionsByPage[page.Name] = encoderActions;
         }
+
+        SetActivePage(_pageSwitcher.CurrentPageName);
+        _pageSwitcher.PageChanged += SetActivePage;
+
+        _ = Task.Run(() => new AppFocusWatcher(config.Pages, _pageSwitcher, _token).RunAsync(), _token);
 
         while (!_token.IsCancellationRequested)
         {
@@ -42,41 +90,131 @@ public class PadService
 
             try
             {
-                await ListenAsync(device, actions);
+                await ListenAsync(device);
             }
             catch (Exception ex) when (ex is IOException or TimeoutException or ObjectDisposedException) { }
         }
     }
 
-    private async Task ListenAsync(HidDevice device, Dictionary<int, IAction> actions)
+    private void SetActivePage(string pageName)
     {
-        using var stream = device.Open();
-        stream.ReadTimeout = Timeout.Infinite;
-        var buffer = new byte[device.GetMaxInputReportLength()];
-        ushort lastMask = 0;
+        lock (_activeLock)
+        {
+            _activeBitActions = _bitActionsByPage.GetValueOrDefault(pageName, new Dictionary<int, IAction>());
+            _activeEncoderActions = _encoderActionsByPage.GetValueOrDefault(pageName, new Dictionary<int, IEncoderAction>());
+        }
+        Console.WriteLine($"[PadService] Page active : {pageName}");
 
+        var index = _pages.FindIndex(p => p.Name == pageName);
+        if (index >= 0) SendPageInfo(pageName, index + 1, _pages.Count);
+    }
+
+    private void SendPageInfo(string name, int index, int total)
+    {
+        var bytes = System.Text.Encoding.ASCII.GetBytes(name);
+        var len = Math.Min(bytes.Length, 20);
+
+        var report = new byte[64];
+        report[0] = 0x01; // CMD_SET_PAGE
+        report[1] = (byte)index;
+        report[2] = (byte)total;
+        report[3] = (byte)len;
+        Array.Copy(bytes, 0, report, 4, len);
+
+        WriteOutputReport(report);
+    }
+
+    private async Task TimeBroadcastLoopAsync()
+    {
         while (!_token.IsCancellationRequested)
         {
-            int count = stream.Read(buffer, 0, buffer.Length);
-            if (count == 0) throw new IOException("Rapport vide");
+            var now = DateTime.Now;
+            var report = new byte[64];
+            report[0] = 0x02; // CMD_SET_TIME
+            report[1] = (byte)now.Hour;
+            report[2] = (byte)now.Minute;
+            WriteOutputReport(report);
 
-            int offset = count > 2 ? 1 : 0;
-            ushort mask = (ushort)(buffer[offset] | (buffer[offset + 1] << 8));
+            // resynchronise pile sur le changement de minute
+            var delay = 60 - now.Second;
+            await Task.Delay(TimeSpan.FromSeconds(delay), _token);
+        }
+    }
 
-            if (mask != lastMask)
+    private void WriteOutputReport(byte[] report)
+    {
+        HidStream? s;
+        lock (_streamLock) { s = _outputStream; }
+        if (s is null) return; // pas encore connecté, on renverra au prochain SetActivePage/tick
+
+        var framed = new byte[report.Length + 1];
+        framed[0] = 0x00;
+        Array.Copy(report, 0, framed, 1, report.Length);
+
+        try { s.Write(framed); }
+        catch (Exception ex) { Console.WriteLine($"[PadService] Échec envoi rapport affichage : {ex.Message}"); }
+    }
+
+    private async Task ListenAsync(HidDevice device)
+    {
+        using var stream = device.Open();
+        lock (_streamLock) { _outputStream = stream; }
+        SendPageInfo(_pageSwitcher.CurrentPageName, _pages.FindIndex(p => p.Name == _pageSwitcher.CurrentPageName) + 1, _pages.Count);
+        try
+        {
+            stream.ReadTimeout = Timeout.Infinite;
+            var buffer = new byte[device.GetMaxInputReportLength()];
+            ushort lastMask = 0;
+
+            while (!_token.IsCancellationRequested)
             {
-                ushort changed = (ushort)(mask ^ lastMask);
-                for (int bit = 0; bit < 12; bit++)
+                int count = stream.Read(buffer, 0, buffer.Length);
+                if (count == 0) throw new IOException("Rapport vide");
+
+                int offset = count > 2 ? 1 : 0;
+                ushort mask = (ushort)(buffer[offset] | (buffer[offset + 1] << 8));
+                sbyte enc1Delta = unchecked((sbyte)buffer[offset + 2]);
+                sbyte enc2Delta = unchecked((sbyte)buffer[offset + 3]);
+
+                Dictionary<int, IAction> bitActions;
+                Dictionary<int, IEncoderAction> encoderActions;
+                lock (_activeLock)
                 {
-                    if ((changed & (1 << bit)) != 0 && (mask & (1 << bit)) != 0
-                        && actions.TryGetValue(bit, out var action))
-                    {
-                        try { action.Execute(); }
-                        catch (Exception ex) { Console.WriteLine($"Erreur action bit {bit} : {ex.Message}"); }
-                    }
+                    bitActions = _activeBitActions;
+                    encoderActions = _activeEncoderActions;
                 }
-                lastMask = mask;
+
+                if (mask != lastMask)
+                {
+                    ushort changed = (ushort)(mask ^ lastMask);
+                    for (int bit = 0; bit < 12; bit++)
+                    {
+                        if ((changed & (1 << bit)) != 0 && (mask & (1 << bit)) != 0
+                            && bitActions.TryGetValue(bit, out var action))
+                        {
+                            try { action.Execute(); }
+                            catch (Exception ex) { Console.WriteLine($"Erreur action bit {bit} : {ex.Message}"); }
+                        }
+                    }
+                    lastMask = mask;
+                }
+
+                if (enc1Delta != 0 && encoderActions.TryGetValue(1, out var e1))
+                    SafeExecute(() => e1.Execute(enc1Delta));
+
+                if (enc2Delta != 0 && encoderActions.TryGetValue(2, out var e2))
+                    SafeExecute(() => e2.Execute(enc2Delta));
             }
         }
+        finally
+        {
+            lock (_streamLock) { if (_outputStream == stream) _outputStream = null; }
+        }
+    }
+
+    private static void SafeExecute(Action action)
+    {
+        try { action(); }
+        catch (Exception ex) { Console.WriteLine($"Erreur action encodeur : {ex.Message}"); }
     }
 }

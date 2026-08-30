@@ -1,16 +1,38 @@
 {
-  "bindings": {
-    "0": { "type": "keystroke", "target": "f13" },
-    "1": { "type": "keystroke", "target": "f14" },
-    "2": { "type": "keystroke", "target": "f15" },
-    "3": { "type": "keystroke", "target": "f16" },
-    "4": { "type": "keystroke", "target": "f17" },
-    "5": { "type": "keystroke", "target": "f18" },
-    "6": { "type": "keystroke", "target": "f19" },
-    "7": { "type": "keystroke", "target": "f20" },
-    "8": { "type": "keystroke", "target": "f21" },
-    "9": { "type": "keystroke", "target": "f22" },
-    "10": { "type": "keystroke", "target": "f23" },
-    "11": { "type": "keystroke", "target": "f24" }
-  }
+  "pages": [
+    {
+      "name": "Bureau",
+      "appMatchers": [],
+      "bindings": {
+        "0": { "type": "keystroke", "target": "f13" },
+        "1": { "type": "keystroke", "target": "f14" },
+        "2": { "type": "keystroke", "target": "f15" },
+        "3": { "type": "keystroke", "target": "f16" },
+        "4": { "type": "keystroke", "target": "f17" },
+        "5": { "type": "keystroke", "target": "f18" },
+        "6": { "type": "keystroke", "target": "f19" },
+        "7": { "type": "keystroke", "target": "f20" },
+        "8": { "type": "keystroke", "target": "f21" },
+        "10": { "type": "sonar-toggle-mute", "target": "chatRender" },
+        "11": { "type": "sonar-toggle-mute", "target": "media" }
+      },
+      "encoders": {
+        "1": { "type": "sonar-volume", "target": "chatRender", "step": 0.01 },
+        "2": { "type": "sonar-volume", "target": "media", "step": 0.01 }
+      }
+    },
+    {
+      "name": "Jeu",
+      "appMatchers": ["VALORANT-Win64-Shipping", "cs2", "csgo"],
+      "bindings": {
+        "0": { "type": "keystroke", "target": "f22" },
+        "10": { "type": "sonar-toggle-mute", "target": "game" },
+        "11": { "type": "sonar-toggle-mute", "target": "chatRender" }
+      },
+      "encoders": {
+        "1": { "type": "sonar-volume", "target": "master", "step": 0.05 },
+        "2": { "type": "sonar-volume", "target": "chatRender", "step": 0.05 }
+      }
+    }
+  ]
 }
