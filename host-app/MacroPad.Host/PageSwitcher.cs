@@ -7,7 +7,7 @@ namespace MacroPad.Host;
 /// </summary>
 public class PageSwitcher : IPageSwitcher
 {
-    private readonly List<PageConfig> _pages;
+    private List<PageConfig> _pages;
     private readonly object _lock = new();
     private int _currentIndex;
 
@@ -51,5 +51,20 @@ public class PageSwitcher : IPageSwitcher
 
         Console.WriteLine($"[PageSwitcher] Page active -> {next} (cycle)");
         PageChanged?.Invoke(next);
+    }
+
+    public void UpdatePages(List<PageConfig> pages)
+    {
+        if (pages.Count == 0) throw new ArgumentException("Au moins une page est requise.");
+
+        lock (_lock)
+        {
+            var currentName = _pages.Count > _currentIndex ? _pages[_currentIndex].Name : null;
+            _pages = pages;
+            var idx = currentName is not null
+                ? _pages.FindIndex(p => string.Equals(p.Name, currentName, StringComparison.OrdinalIgnoreCase))
+                : -1;
+            _currentIndex = idx >= 0 ? idx : 0;
+        }
     }
 }

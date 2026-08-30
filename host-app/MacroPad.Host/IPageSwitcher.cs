@@ -9,4 +9,6 @@ public interface IPageSwitcher
 
     void SwitchToPage(string pageName);
     void CycleNext();
+
+    void UpdatePages(List<PageConfig> pages);
 }

@@ -14,14 +14,15 @@ public class AppFocusWatcher
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
 
-    private readonly List<PageConfig> _pages;
     private readonly IPageSwitcher _pageSwitcher;
     private readonly CancellationToken _token;
     private string? _lastProcess;
 
-    public AppFocusWatcher(List<PageConfig> pages, IPageSwitcher pageSwitcher, CancellationToken token)
+    private readonly Func<List<PageConfig>> _pagesProvider;
+
+    public AppFocusWatcher(Func<List<PageConfig>> pagesProvider, IPageSwitcher pageSwitcher, CancellationToken token)
     {
-        _pages = pages;
+        _pagesProvider = pagesProvider;
         _pageSwitcher = pageSwitcher;
         _token = token;
     }
@@ -29,28 +30,26 @@ public class AppFocusWatcher
     public async Task RunAsync()
     {
         if (!OperatingSystem.IsWindows()) return;
-        if (_pages.All(p => p.AppMatchers.Count == 0)) return; // rien à surveiller
 
         while (!_token.IsCancellationRequested)
         {
             try
             {
-                var processName = GetForegroundProcessName();
-                if (processName is not null && processName != _lastProcess)
+                var pages = _pagesProvider();
+                if (pages.Any(p => p.AppMatchers.Count > 0))
                 {
-                    _lastProcess = processName;
-
-                    var match = _pages.FirstOrDefault(p => p.AppMatchers.Any(m =>
-                        processName.Contains(m, StringComparison.OrdinalIgnoreCase)));
-
-                    if (match is not null)
-                        _pageSwitcher.SwitchToPage(match.Name);
+                    var processName = GetForegroundProcessName();
+                    if (processName is not null && processName != _lastProcess)
+                    {
+                        _lastProcess = processName;
+                        var match = pages.FirstOrDefault(p => p.AppMatchers.Any(m =>
+                            processName.Contains(m, StringComparison.OrdinalIgnoreCase)));
+                        if (match is not null)
+                            _pageSwitcher.SwitchToPage(match.Name);
+                    }
                 }
             }
-            catch
-            {
-                // Fenêtre transitoire (ex: process qui vient de se fermer) — on ignore et on réessaie.
-            }
+            catch { }
 
             await Task.Delay(750, _token);
         }
