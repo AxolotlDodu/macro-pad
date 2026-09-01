@@ -229,11 +229,11 @@ public class DiscordRpcClient : IDisposable
     public void Dispose() => _pipe?.Dispose();
 
     public async Task<(bool mute, bool deaf)?> GetVoiceSettingsAsync()
-{
-    var response = await SendCommandAsync("GET_VOICE_SETTINGS", new Dictionary<string, object>());
-    if (response is null) return null;
+    {
+        var response = await SendCommandAsync("GET_VOICE_SETTINGS", new Dictionary<string, object>());
+        if (response is null) return null;
 
-    var data = response.Value.GetProperty("data");
-    return (data.GetProperty("mute").GetBoolean(), data.GetProperty("deaf").GetBoolean());
-}
+        var data = response.Value.GetProperty("data");
+        return (data.GetProperty("mute").GetBoolean(), data.GetProperty("deaf").GetBoolean());
+    }
 }

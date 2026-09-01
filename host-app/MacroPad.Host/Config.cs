@@ -9,6 +9,7 @@ public class BindingConfig
     public string Target { get; set; } = "";
     public string Method { get; set; } = "GET";
     public string? Body { get; set; }
+    public List<string>? Devices { get; set; } // pour sonar-cycle-output / sonar-cycle-mic
 }
 
 public class EncoderConfig

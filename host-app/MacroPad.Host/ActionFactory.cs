@@ -13,6 +13,18 @@ public static class ActionFactory
             "sonar-toggle-mute" => sonarAddress is not null
                 ? new SonarToggleMuteAction(sonarAddress, config.Target)
                 : null,
+            "sonar-set-output" => sonarAddress is not null
+                ? new SonarSetDeviceAction(sonarAddress, "render", config.Target)
+                : null,
+            "sonar-set-mic" => sonarAddress is not null
+                ? new SonarSetDeviceAction(sonarAddress, "mic", config.Target)
+                : null,
+            "sonar-cycle-output" => sonarAddress is not null
+                ? new SonarCycleDeviceAction(sonarAddress, "render", config.Devices)
+                : null,
+            "sonar-cycle-mic" => sonarAddress is not null
+                ? new SonarCycleDeviceAction(sonarAddress, "mic", config.Devices)
+                : null,
             "switch-page" => pageSwitcher is not null
                 ? new SwitchPageAction(pageSwitcher, config.Target)
                 : null,

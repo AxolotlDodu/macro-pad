@@ -7,8 +7,8 @@
       "appMatchers": [],
       "bindings": {
         "0": { "type": "keystroke", "target": "f13" },
-        "1": { "type": "keystroke", "target": "f14" },
-        "2": { "type": "keystroke", "target": "f15" },
+        "1": {"type": "sonar-cycle-output"},
+        "2": { "type": "sonar-cycle-mic"},
         "3": { "type": "discord-toggle-mute", "target": "" },
         "4": { "type": "discord-toggle-deafen", "target": "" },
         "5": { "type": "keystroke", "target": "f18" },
