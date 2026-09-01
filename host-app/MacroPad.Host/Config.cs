@@ -39,6 +39,12 @@ public class Config
 {
     public List<PageConfig> Pages { get; set; } = new();
 
+    /// <summary>Client ID de l'application Discord (portail développeur), pour le RPC local.</summary>
+    public string? DiscordClientId { get; set; }
+
+    /// <summary>Client Secret associé — nécessaire pour l'échange de code OAuth2.</summary>
+    public string? DiscordClientSecret { get; set; }
+
     /// <summary>Ancien format plat (une seule page implicite). Conservé uniquement pour
     /// permettre la migration automatique ; jamais réécrit sur disque.</summary>
     [JsonPropertyName("bindings")]

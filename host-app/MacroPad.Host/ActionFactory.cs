@@ -2,7 +2,7 @@ namespace MacroPad.Host;
 
 public static class ActionFactory
 {
-    public static IAction? Create(BindingConfig config, string? sonarAddress, IPageSwitcher? pageSwitcher = null)
+    public static IAction? Create(BindingConfig config, string? sonarAddress, IPageSwitcher? pageSwitcher = null, DiscordRpcClient? discordClient = null)
     {
         return config.Type switch
         {
@@ -15,6 +15,12 @@ public static class ActionFactory
                 : null,
             "switch-page" => pageSwitcher is not null
                 ? new SwitchPageAction(pageSwitcher, config.Target)
+                : null,
+            "discord-toggle-mute" => discordClient is not null
+                ? new DiscordMuteToggleAction(discordClient)
+                : null,
+            "discord-toggle-deafen" => discordClient is not null
+                ? new DiscordDeafenToggleAction(discordClient)
                 : null,
             _ => null
         };

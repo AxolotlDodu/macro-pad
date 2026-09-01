@@ -15,6 +15,10 @@ public class PadService
     private IPageSwitcher _pageSwitcher = null!;
     private string _configPath = "";
     private string? _sonarAddress;
+    private DiscordRpcClient? _discordClient;
+
+    private readonly Dictionary<int, DateTime> _lastBitTrigger = new();
+    private static readonly TimeSpan DebounceWindow = TimeSpan.FromMilliseconds(150);
 
     private List<PageConfig> _pages = new();
     private Dictionary<string, Dictionary<int, IAction>> _bitActionsByPage = new();
@@ -37,6 +41,9 @@ public class PadService
         _configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
         var config = Config.Load(_configPath);
         _sonarAddress = await SonarAddressResolver.GetSonarAddressAsync();
+        _discordClient = config.DiscordClientId is not null
+            ? new DiscordRpcClient(config.DiscordClientId, config.DiscordClientSecret!)
+            : null;
 
         _pageSwitcher = new PageSwitcher(config.Pages);
         ApplyConfig(config);
@@ -90,7 +97,7 @@ public class PadService
                 if (binding.Target.Contains("{sonar}") && _sonarAddress is not null)
                     binding.Target = binding.Target.Replace("{sonar}", _sonarAddress);
 
-                var action = ActionFactory.Create(binding, _sonarAddress, _pageSwitcher);
+                var action = ActionFactory.Create(binding, _sonarAddress, _pageSwitcher, _discordClient);
                 if (action is not null) bitActions[bit] = action;
             }
 
@@ -246,6 +253,12 @@ public class PadService
                         if ((changed & (1 << bit)) != 0 && (mask & (1 << bit)) != 0
                             && bitActions.TryGetValue(bit, out var action))
                         {
+                            var now = DateTime.UtcNow;
+                            if (_lastBitTrigger.TryGetValue(bit, out var last) && now - last < DebounceWindow)
+                                continue; // rebond ignoré
+
+                            _lastBitTrigger[bit] = now;
+
                             try { action.Execute(); }
                             catch (Exception ex) { Console.WriteLine($"Erreur action bit {bit} : {ex.Message}"); }
                         }

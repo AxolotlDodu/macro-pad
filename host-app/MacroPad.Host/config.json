@@ -1,4 +1,6 @@
 {
+  "discordClientId": "1544424316895232011",
+  "discordClientSecret": "DDSMJus7jpxgNIwVk8KzBf43xFeKv0LS",
   "pages": [
     {
       "name": "Bureau",
@@ -7,8 +9,8 @@
         "0": { "type": "keystroke", "target": "f13" },
         "1": { "type": "keystroke", "target": "f14" },
         "2": { "type": "keystroke", "target": "f15" },
-        "3": { "type": "keystroke", "target": "f16" },
-        "4": { "type": "keystroke", "target": "f17" },
+        "3": { "type": "discord-toggle-mute", "target": "" },
+        "4": { "type": "discord-toggle-deafen", "target": "" },
         "5": { "type": "keystroke", "target": "f18" },
         "6": { "type": "keystroke", "target": "f19" },
         "7": { "type": "keystroke", "target": "f20" },
@@ -17,8 +19,8 @@
         "11": { "type": "sonar-toggle-mute", "target": "media" }
       },
       "encoders": {
-        "1": { "type": "sonar-volume", "target": "chatRender", "step": 0.01 },
-        "2": { "type": "sonar-volume", "target": "media", "step": 0.01 }
+        "1": { "type": "sonar-volume", "target": "chatRender", "step": 0.025 },
+        "2": { "type": "sonar-volume", "target": "media", "step": 0.025 }
       }
     },
     {
@@ -30,8 +32,29 @@
         "11": { "type": "sonar-toggle-mute", "target": "chatRender" }
       },
       "encoders": {
-        "1": { "type": "sonar-volume", "target": "master", "step": 0.05 },
-        "2": { "type": "sonar-volume", "target": "chatRender", "step": 0.05 }
+        "1": { "type": "sonar-volume", "target": "master", "step": 0.025 },
+        "2": { "type": "sonar-volume", "target": "chatRender", "step": 0.025 }
+      }
+    },
+    {
+      "name": "FreeCAD",
+      "appMatchers": ["FreeCAD"],
+      "bindings": {
+        "0": { "type": "keystroke", "target": "alt+f13" },
+        "1": { "type": "keystroke", "target": "alt+f14" },
+        "2": { "type": "keystroke", "target": "alt+f15" },
+        "3": { "type": "keystroke", "target": "alt+f16" },
+        "4": { "type": "keystroke", "target": "alt+f17" },
+        "5": { "type": "keystroke", "target": "alt+f18" },
+        "6": { "type": "keystroke", "target": "alt+f19" },
+        "7": { "type": "keystroke", "target": "alt+f20" },
+        "8": { "type": "keystroke", "target": "alt+f21" },
+        "10": { "type": "sonar-toggle-mute", "target": "chatRender" },
+        "11": { "type": "sonar-toggle-mute", "target": "media" }
+      },
+      "encoders": {
+        "1": { "type": "sonar-volume", "target": "chatRender", "step": 0.025 },
+        "2": { "type": "sonar-volume", "target": "media", "step": 0.025 }
       }
     }
   ]
