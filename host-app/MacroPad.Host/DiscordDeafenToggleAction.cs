@@ -3,7 +3,6 @@ namespace MacroPad.Host;
 public class DiscordDeafenToggleAction : IAction
 {
     private readonly DiscordRpcClient _client;
-    private bool? _lastKnownDeaf;
 
     public DiscordDeafenToggleAction(DiscordRpcClient client) => _client = client;
 
@@ -17,15 +16,16 @@ public class DiscordDeafenToggleAction : IAction
             return;
         }
 
-        var desiredDeaf = !(_lastKnownDeaf ?? false);
+        var current = await _client.GetVoiceSettingsAsync();
+        if (current is null) return;
+        var (_, deaf) = current.Value;
 
-        // Discord refuse l'état deaf=true + mute=false (incohérent côté client natif).
-        // Se mettre en sourdine coupe aussi le micro ; en sortir réactive les deux.
-        var data = await _client.SetVoiceSettingsAsync(mute: desiredDeaf, deaf: desiredDeaf);
+        bool newDeaf = !deaf;
+        bool newMute = newDeaf; // deaf implique toujours mute
+
+        var data = await _client.SetVoiceSettingsAsync(mute: newMute, deaf: newDeaf);
         if (data is null) return;
 
-        var actualDeaf = data.Value.GetProperty("deaf").GetBoolean();
-        _lastKnownDeaf = actualDeaf;
-        Console.WriteLine($"[DiscordDeafen] deaf={actualDeaf}");
+        Console.WriteLine($"[DiscordDeafen] mute={data.Value.GetProperty("mute").GetBoolean()} deaf={data.Value.GetProperty("deaf").GetBoolean()}");
     }
 }

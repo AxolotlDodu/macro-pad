@@ -3,7 +3,6 @@ namespace MacroPad.Host;
 public class DiscordMuteToggleAction : IAction
 {
     private readonly DiscordRpcClient _client;
-    private bool? _lastKnownMuted;
 
     public DiscordMuteToggleAction(DiscordRpcClient client) => _client = client;
 
@@ -17,12 +16,17 @@ public class DiscordMuteToggleAction : IAction
             return;
         }
 
-        var desiredMuted = !(_lastKnownMuted ?? false);
-        var data = await _client.SetVoiceSettingsAsync(mute: desiredMuted, deaf: false);
+        var current = await _client.GetVoiceSettingsAsync();
+        if (current is null) return;
+        var (mute, deaf) = current.Value;
+
+        // Si deafen actif, le bouton mute retire tout (comme le client natif).
+        bool newMute = deaf ? false : !mute;
+        bool newDeaf = false;
+
+        var data = await _client.SetVoiceSettingsAsync(mute: newMute, deaf: newDeaf);
         if (data is null) return;
 
-        var actualMuted = data.Value.GetProperty("mute").GetBoolean();
-        _lastKnownMuted = actualMuted;
-        Console.WriteLine($"[DiscordMute] muted={actualMuted}");
+        Console.WriteLine($"[DiscordMute] mute={data.Value.GetProperty("mute").GetBoolean()} deaf={data.Value.GetProperty("deaf").GetBoolean()}");
     }
 }
