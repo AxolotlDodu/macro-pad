@@ -3,32 +3,120 @@
         xmlns:vm="using:MacroPad.Host"
         x:Class="MacroPad.Host.ConfigWindow"
         Title="MacroPad - Configuration"
-        Width="640" Height="520">
-    <DockPanel Margin="12">
-        <Button DockPanel.Dock="Bottom" Content="Enregistrer" Click="OnSaveClick"
-                HorizontalAlignment="Right" Margin="0,12,0,0"/>
-        <ScrollViewer>
-            <ItemsControl x:Name="BindingsList">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="vm:BindingRowViewModel">
-                        <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="0,8">
-                            <Grid ColumnDefinitions="50,140,*,70">
-                                <TextBlock Grid.Column="0" Text="{Binding Bit}" VerticalAlignment="Center"/>
-                                <ComboBox Grid.Column="1" SelectedItem="{Binding Type}" Margin="4,0">
-                                    <x:String>none</x:String>
-                                    <x:String>launch</x:String>
-                                    <x:String>url</x:String>
-                                    <x:String>keystroke</x:String>
-                                    <x:String>http</x:String>
-                                    <x:String>sonar-toggle-mute</x:String>
-                                </ComboBox>
-                                <TextBox Grid.Column="2" Text="{Binding Target}" Watermark="Cible" Margin="4,0"/>
-                                <TextBox Grid.Column="3" Text="{Binding Method}" Watermark="Méthode" Margin="4,0"/>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
-    </DockPanel>
+        Width="900" Height="680"
+        Background="#1E1E2E">
+
+    <Window.Styles>
+        <Style Selector="Button.pad">
+            <Setter Property="Width" Value="110"/>
+            <Setter Property="Height" Value="110"/>
+            <Setter Property="Background" Value="#313244"/>
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.knob">
+            <Setter Property="Width" Value="160"/>
+            <Setter Property="Height" Value="110"/>
+            <Setter Property="Background" Value="#45475A"/>
+            <Setter Property="Foreground" Value="#CDD6F4"/>
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="TextBlock.zoneTitle">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#6C7086"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="220,*">
+
+        <!-- Colonne de gauche : liste des pages -->
+        <Border Grid.Column="0" Background="#181825" Padding="14">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Pages"
+                           FontSize="20" FontWeight="Bold"
+                           Foreground="#CDD6F4" Margin="0,0,0,12"/>
+
+                <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+                    <Button x:Name="AddPageButton" Content="+ Ajouter une page"
+                            Click="OnAddPageClick" HorizontalAlignment="Stretch"
+                            Background="#313244" Foreground="#CDD6F4" Padding="8"/>
+                    <Button x:Name="RemovePageButton" Content="Supprimer cette page"
+                            Click="OnRemovePageClick" HorizontalAlignment="Stretch"
+                            Background="#45273A" Foreground="#F38BA8" Padding="8"/>
+                </StackPanel>
+
+                <ListBox x:Name="PageList" Background="Transparent"
+                         Foreground="#CDD6F4" SelectionChanged="OnPageSelectionChanged"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Colonne de droite -->
+        <Grid Grid.Column="1" Margin="24,20,24,20" RowDefinitions="Auto,Auto,*,Auto">
+
+            <StackPanel Grid.Row="0" Spacing="4" Margin="0,0,0,14">
+                <TextBlock Text="NOM DE LA PAGE" FontSize="11" Foreground="#6C7086"/>
+                <TextBox x:Name="PageNameBox" FontSize="22" FontWeight="SemiBold"
+                         Background="#313244" Foreground="#CDD6F4" BorderThickness="0"
+                         Padding="8"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Spacing="4" Margin="0,0,0,14">
+                <TextBlock Text="DÉTECTION AUTOMATIQUE (noms de process, séparés par des virgules)"
+                           FontSize="11" Foreground="#6C7086"/>
+                <TextBox x:Name="AppMatchersBox"
+                         Watermark="ex: VALORANT-Win64-Shipping, cs2, csgo"
+                         Background="#313244" Foreground="#CDD6F4" BorderThickness="0"
+                         Padding="8"/>
+            </StackPanel>
+
+            <!-- Zone touches + zone encodeurs, côte à côte -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+
+                <!-- Zone 1 : grille 3x3 des touches -->
+                <Border Background="#181825" CornerRadius="10" Padding="20">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="TOUCHES" Classes="zoneTitle" HorizontalAlignment="Center"/>
+                            <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto"
+                              ColumnSpacing="14" RowSpacing="14">
+                            <Button x:Name="Bit0" Grid.Column="0" Grid.Row="0" Tag="0" Click="OnBitButtonClick" Classes="pad"/>
+                            <Button x:Name="Bit1" Grid.Column="1" Grid.Row="0" Tag="1" Click="OnBitButtonClick" Classes="pad"/>
+                            <Button x:Name="Bit2" Grid.Column="2" Grid.Row="0" Tag="2" Click="OnBitButtonClick" Classes="pad"/>
+                            <Button x:Name="Bit3" Grid.Column="0" Grid.Row="1" Tag="3" Click="OnBitButtonClick" Classes="pad"/>
+                            <Button x:Name="Bit4" Grid.Column="1" Grid.Row="1" Tag="4" Click="OnBitButtonClick" Classes="pad"/>
+                            <Button x:Name="Bit5" Grid.Column="2" Grid.Row="1" Tag="5" Click="OnBitButtonClick" Classes="pad"/>
+                            <Button x:Name="Bit6" Grid.Column="0" Grid.Row="2" Tag="6" Click="OnBitButtonClick" Classes="pad"/>
+                            <Button x:Name="Bit7" Grid.Column="1" Grid.Row="2" Tag="7" Click="OnBitButtonClick" Classes="pad"/>
+                            <Button x:Name="Bit8" Grid.Column="2" Grid.Row="2" Tag="8" Click="OnBitButtonClick" Classes="pad"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Zone 2 : encodeurs -->
+                <Border Background="#181825" CornerRadius="10" Padding="20" VerticalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="ENCODEURS" Classes="zoneTitle" HorizontalAlignment="Center"/>
+                        <StackPanel Spacing="16" HorizontalAlignment="Center">
+                            <Button x:Name="Enc1Button" Width="140" Height="90" CornerRadius="10"
+                                    Tag="1" Click="OnEncoderButtonClick" Classes="knob"/>
+                            <Button x:Name="Enc2Button" Width="140" Height="90" CornerRadius="10"
+                                    Tag="2" Click="OnEncoderButtonClick" Classes="knob"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+
+            <Button Grid.Row="3" Content="Enregistrer" Click="OnSaveClick"
+                    HorizontalAlignment="Right" Margin="0,16,0,0"
+                    Padding="20,10" Background="#89B4FA" Foreground="#1E1E2E"
+                    FontWeight="Bold"/>
+        </Grid>
+    </Grid>
 </Window>

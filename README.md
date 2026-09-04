@@ -20,6 +20,8 @@ On peut avoir toutes les inputs/outputs ici :
 
 - http://127.0.0.1:64409/audioDevices
 
-TODO :
+### Pour discord :
 
-- Créer une listes des périphériques sur lequels cycler.
+Fonctions implémentées :
+ - mute
+ - deafen

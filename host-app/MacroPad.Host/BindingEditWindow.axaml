@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MacroPad.Host.BindingEditWindow"
+        Title="Éditer l'action"
+        Width="420" SizeToContent="Height"
+        Background="#1E1E2E"
+        WindowStartupLocation="CenterOwner">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#6C7086"/>
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Margin="20" Spacing="12">
+        <TextBlock x:Name="HeaderText" FontSize="16" FontWeight="Bold" Foreground="#CDD6F4"/>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="TYPE D'ACTION" Classes="label"/>
+            <ComboBox x:Name="TypeBox" HorizontalAlignment="Stretch"/>
+        </StackPanel>
+
+        <StackPanel x:Name="TargetTextPanel" Spacing="4">
+            <TextBlock Text="CIBLE" Classes="label"/>
+            <TextBox x:Name="TargetTextBox"/>
+        </StackPanel>
+
+        <StackPanel x:Name="TargetComboPanel" Spacing="4">
+            <TextBlock Text="CIBLE (CHANNEL)" Classes="label"/>
+            <ComboBox x:Name="TargetComboBox" HorizontalAlignment="Stretch"/>
+        </StackPanel>
+
+        <StackPanel x:Name="MethodPanel" Spacing="4">
+            <TextBlock Text="MÉTHODE HTTP" Classes="label"/>
+            <ComboBox x:Name="MethodBox" HorizontalAlignment="Stretch">
+                <x:String>GET</x:String>
+                <x:String>POST</x:String>
+                <x:String>PUT</x:String>
+                <x:String>DELETE</x:String>
+            </ComboBox>
+        </StackPanel>
+
+        <StackPanel x:Name="StepPanel" Spacing="4">
+            <TextBlock Text="PAS DE VOLUME (0.0 - 1.0)" Classes="label"/>
+            <TextBox x:Name="StepBox"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+            <Button Content="Annuler" Click="OnCancelClick" Padding="16,8"
+                    Background="#313244" Foreground="#CDD6F4"/>
+            <Button Content="Valider" Click="OnOkClick" Padding="16,8"
+                    Background="#89B4FA" Foreground="#1E1E2E" FontWeight="Bold"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

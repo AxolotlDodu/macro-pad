@@ -1,0 +1,90 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MacroPad.Host.EncoderEditWindow"
+        Title="Éditer l'encodeur"
+        Width="440" SizeToContent="Height"
+        Background="#1E1E2E"
+        WindowStartupLocation="CenterOwner">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#6C7086"/>
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#89B4FA"/>
+        </Style>
+        <Style Selector="Border.section">
+            <Setter Property="Background" Value="#181825"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14"/>
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Margin="20" Spacing="14">
+        <TextBlock x:Name="HeaderText" FontSize="16" FontWeight="Bold" Foreground="#CDD6F4"/>
+
+        <!-- Section clic (bouton du bit associé) -->
+        <Border Classes="section">
+            <StackPanel Spacing="10">
+                <TextBlock Text="CLIC (appui sur l'encodeur)" Classes="section"/>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="TYPE D'ACTION" Classes="label"/>
+                    <ComboBox x:Name="ClickTypeBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+
+                <StackPanel x:Name="ClickTargetTextPanel" Spacing="4">
+                    <TextBlock Text="CIBLE" Classes="label"/>
+                    <TextBox x:Name="ClickTargetTextBox"/>
+                </StackPanel>
+
+                <StackPanel x:Name="ClickTargetComboPanel" Spacing="4">
+                    <TextBlock Text="CIBLE (CHANNEL)" Classes="label"/>
+                    <ComboBox x:Name="ClickTargetComboBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+
+                <StackPanel x:Name="ClickMethodPanel" Spacing="4">
+                    <TextBlock Text="MÉTHODE HTTP" Classes="label"/>
+                    <ComboBox x:Name="ClickMethodBox" HorizontalAlignment="Stretch">
+                        <x:String>GET</x:String>
+                        <x:String>POST</x:String>
+                        <x:String>PUT</x:String>
+                        <x:String>DELETE</x:String>
+                    </ComboBox>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Section rotation -->
+        <Border Classes="section">
+            <StackPanel Spacing="10">
+                <TextBlock Text="ROTATION" Classes="section"/>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="TYPE D'ACTION" Classes="label"/>
+                    <ComboBox x:Name="RotationTypeBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+
+                <StackPanel x:Name="RotationTargetComboPanel" Spacing="4">
+                    <TextBlock Text="CIBLE (CHANNEL)" Classes="label"/>
+                    <ComboBox x:Name="RotationTargetComboBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="PAS DE VOLUME (0.0 - 1.0)" Classes="label"/>
+                    <TextBox x:Name="RotationStepBox"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Annuler" Click="OnCancelClick" Padding="16,8"
+                    Background="#313244" Foreground="#CDD6F4"/>
+            <Button Content="Valider" Click="OnOkClick" Padding="16,8"
+                    Background="#89B4FA" Foreground="#1E1E2E" FontWeight="Bold"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

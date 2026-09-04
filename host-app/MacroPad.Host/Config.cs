@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -22,9 +23,25 @@ public class EncoderConfig
     public double Step { get; set; } = 0.05;
 }
 
-public class PageConfig
+/// <summary>
+/// Implémente INotifyPropertyChanged sur Name uniquement : ça permet au ListBox de pages
+/// de la fenêtre de config de refléter un renommage en direct via un simple binding,
+/// sans jamais avoir à remplacer l'élément dans l'ObservableCollection (ce qui plantait
+/// le modèle de sélection d'Avalonia si la page renommée était celle sélectionnée).
+/// </summary>
+public class PageConfig : INotifyPropertyChanged
 {
-    public string Name { get; set; } = "Default";
+    private string _name = "Default";
+    public string Name
+    {
+        get => _name;
+        set
+        {
+            if (_name == value) return;
+            _name = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Name)));
+        }
+    }
 
     /// <summary>Sous-chaînes de nom de processus (insensible à la casse) qui déclenchent
     /// automatiquement le passage sur cette page quand la fenêtre correspondante prend le focus.</summary>
@@ -34,6 +51,8 @@ public class PageConfig
 
     /// <summary>Clés "1" et "2" pour les deux encodeurs rotatifs.</summary>
     public Dictionary<string, EncoderConfig> Encoders { get; set; } = new();
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 }
 
 public class Config

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Avalonia.Controls;
+using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
@@ -10,69 +11,223 @@ public partial class ConfigWindow : Window
     private readonly string _configPath;
     private readonly Config _config;
 
-    // NOTE: édite uniquement la 1ère page pour l'instant. Le vrai sélecteur de pages
-    // (liste à gauche, add/remove/rename, AppMatchers) reste à construire côté XAML —
-    // voir le message d'accompagnement pour le détail de ce qu'il reste à faire.
-    private readonly PageConfig _page;
+    private readonly ObservableCollection<PageConfig> _pages;
+    private PageConfig? _currentPage;
 
-    public ObservableCollection<BindingRowViewModel> Rows { get; } = new();
+    private ListBox _pageListBox = null!;
+    private TextBox _pageNameBox = null!;
+    private TextBox _appMatchersBox = null!;
+
+    private readonly Dictionary<int, Button> _bitButtons = new();
+    private Button _enc1Button = null!;
+    private Button _enc2Button = null!;
+
+    private static readonly Avalonia.Media.IBrush AssignedBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#89B4FA"));
+    private static readonly Avalonia.Media.IBrush UnassignedPadBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#313244"));
+    private static readonly Avalonia.Media.IBrush AssignedForeground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#1E1E2E"));
+    private static readonly Avalonia.Media.IBrush UnassignedForeground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#CDD6F4"));
 
     public ConfigWindow()
     {
         AvaloniaXamlLoader.Load(this);
         _configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
         _config = Config.Load(_configPath);
-        _page = _config.Pages[0];
 
-        for (int bit = 0; bit < 12; bit++)
+        _pages = new ObservableCollection<PageConfig>(_config.Pages);
+
+        _pageListBox = this.FindControl<ListBox>("PageList")!;
+        _pageNameBox = this.FindControl<TextBox>("PageNameBox")!;
+        _appMatchersBox = this.FindControl<TextBox>("AppMatchersBox")!;
+
+        // bit -> numéro affiché sur la touche (bit 0 = touche 1, ..., bit 8 = touche 9)
+        _bitButtons[0] = this.FindControl<Button>("Bit0")!;
+        _bitButtons[1] = this.FindControl<Button>("Bit1")!;
+        _bitButtons[2] = this.FindControl<Button>("Bit2")!;
+        _bitButtons[3] = this.FindControl<Button>("Bit3")!;
+        _bitButtons[4] = this.FindControl<Button>("Bit4")!;
+        _bitButtons[5] = this.FindControl<Button>("Bit5")!;
+        _bitButtons[6] = this.FindControl<Button>("Bit6")!;
+        _bitButtons[7] = this.FindControl<Button>("Bit7")!;
+        _bitButtons[8] = this.FindControl<Button>("Bit8")!;
+
+        _enc1Button = this.FindControl<Button>("Enc1Button")!;
+        _enc2Button = this.FindControl<Button>("Enc2Button")!;
+
+        _pageListBox.ItemsSource = _pages;
+        _pageListBox.DisplayMemberBinding = new Binding("Name");
+
+        _pageListBox.SelectedIndex = 0;
+    }
+
+    private void OnPageSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.RemovedItems.Count > 0 && e.RemovedItems[0] is PageConfig previous)
+            CommitCurrentPageEdits(previous);
+
+        if (_pageListBox.SelectedItem is PageConfig page)
+            LoadPage(page);
+    }
+
+    private void LoadPage(PageConfig page)
+    {
+        _currentPage = page;
+        _pageNameBox.Text = page.Name;
+        _appMatchersBox.Text = string.Join(", ", page.AppMatchers);
+        RefreshPadButtons(page);
+    }
+
+        private void RefreshPadButtons(PageConfig page)
+    {
+        foreach (var (bit, button) in _bitButtons)
         {
-            if (bit == 9)
-            {
-                // Réservé au changement de page (pin 14) — affiché mais non éditable/sauvegardé.
-                Rows.Add(new BindingRowViewModel
-                {
-                    Bit = bit,
-                    Type = "switch-page",
-                    Target = "(réservé — page suivante)"
-                });
-                continue;
-            }
-
-            _page.Bindings.TryGetValue(bit.ToString(), out var existing);
-            Rows.Add(new BindingRowViewModel
-            {
-                Bit = bit,
-                Type = existing?.Type ?? "none",
-                Target = existing?.Target ?? "",
-                Method = existing?.Method ?? "GET"
-            });
+            page.Bindings.TryGetValue(bit.ToString(), out var binding);
+            bool assigned = binding is not null && binding.Type != "none";
+            SetButtonState(button, (bit + 1).ToString(), assigned);
         }
 
-        var list = this.FindControl<ItemsControl>("BindingsList")!;
-        list.ItemsSource = Rows;
+        page.Encoders.TryGetValue("1", out var enc1Rotation);
+        page.Encoders.TryGetValue("2", out var enc2Rotation);
+        page.Bindings.TryGetValue("10", out var enc1Click);
+        page.Bindings.TryGetValue("11", out var enc2Click);
+
+        bool enc1Assigned = (enc1Rotation is not null && enc1Rotation.Type != "none")
+                          || (enc1Click is not null && enc1Click.Type != "none");
+        bool enc2Assigned = (enc2Rotation is not null && enc2Rotation.Type != "none")
+                          || (enc2Click is not null && enc2Click.Type != "none");
+
+        SetButtonState(_enc1Button, "1", enc1Assigned);
+        SetButtonState(_enc2Button, "2", enc2Assigned);
+    }
+
+    private static void SetButtonState(Button button, string number, bool assigned)
+    {
+        button.Content = number;
+        button.Background = assigned ? AssignedBrush : UnassignedPadBrush;
+        button.Foreground = assigned ? AssignedForeground : UnassignedForeground;
+        button.FontWeight = assigned ? Avalonia.Media.FontWeight.Bold : Avalonia.Media.FontWeight.Normal;
+    }
+
+    private void CommitCurrentPageEdits(PageConfig page)
+    {
+        page.Name = string.IsNullOrWhiteSpace(_pageNameBox.Text) ? page.Name : _pageNameBox.Text.Trim();
+        page.AppMatchers = (_appMatchersBox.Text ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+    }
+
+    private async void OnBitButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (_currentPage is null || sender is not Button btn) return;
+        var bit = int.Parse((string)btn.Tag!);
+
+        _currentPage.Bindings.TryGetValue(bit.ToString(), out var existing);
+
+        var dlg = new BindingEditWindow(
+            BindingEditMode.Button,
+            $"Touche {bit + 1}",
+            existing?.Type ?? "none",
+            existing?.Target ?? "",
+            existing?.Method ?? "GET",
+            0,
+            _pages.Select(p => p.Name).ToList());
+
+        await dlg.ShowDialog(this);
+        if (!dlg.Confirmed) return;
+
+        if (dlg.ResultType == "none")
+            _currentPage.Bindings.Remove(bit.ToString());
+        else
+            _currentPage.Bindings[bit.ToString()] = new BindingConfig
+            {
+                Type = dlg.ResultType,
+                Target = dlg.ResultTarget,
+                Method = dlg.ResultMethod
+            };
+
+        RefreshPadButtons(_currentPage);
+    }
+
+    private async void OnEncoderButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (_currentPage is null || sender is not Button btn) return;
+        var idx = (string)btn.Tag!; // "1" ou "2"
+        var clickBit = idx == "1" ? "10" : "11";
+
+        _currentPage.Bindings.TryGetValue(clickBit, out var existingClick);
+        _currentPage.Encoders.TryGetValue(idx, out var existingRotation);
+
+        var dlg = new EncoderEditWindow(
+            $"Encodeur {idx}",
+            existingClick?.Type ?? "none", existingClick?.Target ?? "", existingClick?.Method ?? "GET",
+            existingRotation?.Type ?? "none", existingRotation?.Target ?? "", existingRotation?.Step ?? 0.05,
+            _pages.Select(p => p.Name).ToList());
+
+        await dlg.ShowDialog(this);
+        if (!dlg.Confirmed) return;
+
+        if (dlg.ClickType == "none")
+            _currentPage.Bindings.Remove(clickBit);
+        else
+            _currentPage.Bindings[clickBit] = new BindingConfig
+            {
+                Type = dlg.ClickType,
+                Target = dlg.ClickTarget,
+                Method = dlg.ClickMethod
+            };
+
+        if (dlg.RotationType == "none")
+            _currentPage.Encoders.Remove(idx);
+        else
+            _currentPage.Encoders[idx] = new EncoderConfig
+            {
+                Type = dlg.RotationType,
+                Target = dlg.RotationTarget,
+                Step = dlg.RotationStep
+            };
+
+        RefreshPadButtons(_currentPage);
+    }
+
+    private void OnAddPageClick(object? sender, RoutedEventArgs e)
+    {
+        int n = _pages.Count + 1;
+        string name = $"Nouvelle page {n}";
+        while (_pages.Any(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)))
+        {
+            n++;
+            name = $"Nouvelle page {n}";
+        }
+
+        var newPage = new PageConfig { Name = name };
+        _pages.Add(newPage);
+        _pageListBox.SelectedItem = newPage;
+    }
+
+    private void OnRemovePageClick(object? sender, RoutedEventArgs e)
+    {
+        if (_pages.Count <= 1)
+        {
+            Console.WriteLine("[ConfigWindow] Impossible de supprimer la dernière page.");
+            return;
+        }
+
+        if (_pageListBox.SelectedItem is not PageConfig page) return;
+
+        var idx = _pages.IndexOf(page);
+        _currentPage = null;
+        _pages.Remove(page);
+
+        _pageListBox.SelectedIndex = Math.Max(0, idx - 1);
     }
 
     private void OnSaveClick(object? sender, RoutedEventArgs e)
     {
-        foreach (var row in Rows)
-        {
-            if (row.Bit == 9) continue; // verrouillé, jamais écrit depuis l'UI
+        if (_currentPage is not null)
+            CommitCurrentPageEdits(_currentPage);
 
-            if (row.Type == "none" || string.IsNullOrWhiteSpace(row.Target))
-            {
-                _page.Bindings.Remove(row.Bit.ToString());
-                continue;
-            }
-
-            _page.Bindings[row.Bit.ToString()] = new BindingConfig
-            {
-                Type = row.Type,
-                Target = row.Target,
-                Method = row.Method
-            };
-        }
-
+        _config.Pages = _pages.ToList();
         _config.Save(_configPath);
-        Close();
+
+        Console.WriteLine("[ConfigWindow] Configuration enregistrée.");
     }
 }

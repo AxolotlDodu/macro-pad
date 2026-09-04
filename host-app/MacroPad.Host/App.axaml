@@ -7,7 +7,7 @@
 
     <TrayIcon.Icons>
         <TrayIcons>
-            <TrayIcon ToolTipText="MacroPad - Clic gauche pour quitter" />
+            <TrayIcon ToolTipText="Gestion MacroPad" />
         </TrayIcons>
     </TrayIcon.Icons>
 </Application>
