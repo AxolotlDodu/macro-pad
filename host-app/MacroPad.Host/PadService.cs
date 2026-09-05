@@ -2,7 +2,7 @@ using HidSharp;
 
 namespace MacroPad.Host;
 
-public class PadService
+public class PadService : IPadNotifier
 {
     private const ushort VendorId = 0x2341;
     private const ushort ProductId = 0x8036;
@@ -10,6 +10,8 @@ public class PadService
     /// <summary>Bit du bouton pin 14 (10e switch). Verrouillé sur le changement de page,
     /// quelle que soit la config chargée — voir RunAsync.</summary>
     private const int ReservedPageSwitchBit = 9;
+
+    private const byte CmdSetNotification = 0x03;
 
     private readonly CancellationToken _token;
     private IPageSwitcher _pageSwitcher = null!;
@@ -97,7 +99,7 @@ public class PadService
                 if (binding.Target.Contains("{sonar}") && _sonarAddress is not null)
                     binding.Target = binding.Target.Replace("{sonar}", _sonarAddress);
 
-                var action = ActionFactory.Create(binding, _sonarAddress, _pageSwitcher, _discordClient);
+                var action = ActionFactory.Create(binding, _sonarAddress, _pageSwitcher, _discordClient, this);
                 if (action is not null) bitActions[bit] = action;
             }
 
@@ -107,7 +109,7 @@ public class PadService
             foreach (var (key, enc) in page.Encoders)
             {
                 if (!int.TryParse(key, out var idx)) continue;
-                var action = ActionFactory.CreateEncoder(enc, _sonarAddress);
+                var action = ActionFactory.CreateEncoder(enc, _sonarAddress, this);
                 if (action is not null) encoderActions[idx] = action;
             }
 
@@ -180,6 +182,19 @@ public class PadService
         report[2] = (byte)total;
         report[3] = (byte)len;
         Array.Copy(bytes, 0, report, 4, len);
+
+        WriteOutputReport(report);
+    }
+
+    public void ShowNotification(string text)
+    {
+        var bytes = System.Text.Encoding.ASCII.GetBytes(text);
+        var len = Math.Min(bytes.Length, 20);
+
+        var report = new byte[64];
+        report[0] = CmdSetNotification;
+        report[1] = (byte)len;
+        Array.Copy(bytes, 0, report, 2, len);
 
         WriteOutputReport(report);
     }

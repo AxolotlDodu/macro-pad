@@ -2,7 +2,7 @@ namespace MacroPad.Host;
 
 public static class ActionFactory
 {
-    public static IAction? Create(BindingConfig config, string? sonarAddress, IPageSwitcher? pageSwitcher = null, DiscordRpcClient? discordClient = null)
+    public static IAction? Create(BindingConfig config, string? sonarAddress, IPageSwitcher? pageSwitcher = null, DiscordRpcClient? discordClient = null, IPadNotifier? notifier = null)
     {
         return config.Type switch
         {
@@ -11,19 +11,19 @@ public static class ActionFactory
             "keystroke" => new KeystrokeAction(config.Target),
             "http" => new HttpAction(config.Method, config.Target, config.Body),
             "sonar-toggle-mute" => sonarAddress is not null
-                ? new SonarToggleMuteAction(sonarAddress, config.Target)
+                ? new SonarToggleMuteAction(sonarAddress, config.Target, notifier)
                 : null,
             "sonar-set-output" => sonarAddress is not null
-                ? new SonarSetDeviceAction(sonarAddress, "render", config.Target)
+                ? new SonarSetDeviceAction(sonarAddress, "render", config.Target, notifier)
                 : null,
             "sonar-set-mic" => sonarAddress is not null
-                ? new SonarSetDeviceAction(sonarAddress, "mic", config.Target)
+                ? new SonarSetDeviceAction(sonarAddress, "mic", config.Target, notifier)
                 : null,
             "sonar-cycle-output" => sonarAddress is not null
-                ? new SonarCycleDeviceAction(sonarAddress, "render", config.Devices)
+                ? new SonarCycleDeviceAction(sonarAddress, "render", config.Devices, notifier)
                 : null,
             "sonar-cycle-mic" => sonarAddress is not null
-                ? new SonarCycleDeviceAction(sonarAddress, "mic", config.Devices)
+                ? new SonarCycleDeviceAction(sonarAddress, "mic", config.Devices, notifier)
                 : null,
             "switch-page" => pageSwitcher is not null
                 ? new SwitchPageAction(pageSwitcher, config.Target)
@@ -38,12 +38,12 @@ public static class ActionFactory
         };
     }
 
-    public static IEncoderAction? CreateEncoder(EncoderConfig config, string? sonarAddress)
+    public static IEncoderAction? CreateEncoder(EncoderConfig config, string? sonarAddress, IPadNotifier? notifier = null)
     {
         return config.Type switch
         {
             "sonar-volume" => sonarAddress is not null
-                ? new SonarVolumeEncoderAction(sonarAddress, config.Target, config.Step > 0 ? config.Step : 0.05)
+                ? new SonarVolumeEncoderAction(sonarAddress, config.Target, config.Step > 0 ? config.Step : 0.05, notifier)
                 : null,
             _ => null
         };

@@ -74,7 +74,12 @@ class Encoder {
 
   void update(){
     uint8_t s = (digitalRead(pinA) << 1) | digitalRead(pinB);
+    unsigned long now = millis();
+
     if(s != lastState){
+      if(now - lastChangeTime < debounceTime) return; // rebond ignoré
+      lastChangeTime = now;
+
       static const int8_t table[16] = {
          0, 1,-1, 0,
         -1, 0, 0, 1,
@@ -82,8 +87,17 @@ class Encoder {
          0,-1, 1, 0
       };
       uint8_t idx = (lastState << 2) | s;
-      delta += table[idx];
+      accumulator += table[idx];
       lastState = s;
+
+      // "3" = repos (les deux pins au repos, pull-up). Un cran complet = 4 transitions valides
+      // depuis le dernier repos. On ne remonte le delta qu'une fois de retour au repos,
+      // ce qui élimine tout rebond partiel en cours de cran.
+      if(s == 3){
+        if(accumulator >= 4) delta += 1;
+        else if(accumulator <= -4) delta -= 1;
+        accumulator = 0;
+      }
     }
   }
 
@@ -95,7 +109,10 @@ class Encoder {
 
   private:
   uint8_t lastState = 0;
+  int8_t accumulator = 0;
   int8_t delta = 0;
+  unsigned long lastChangeTime = 0;
+  const unsigned long debounceTime = 2; // ms, anti-rebond entre transitions
 };
 
 Encoder encoder1(ENC1_PIN_A, ENC1_PIN_B);
@@ -113,8 +130,56 @@ uint8_t clockHour = 0;
 uint8_t clockMinute = 0;
 bool clockSet = false;
 
+bool notificationActive = false;
+unsigned long notificationStart = 0;
+const unsigned long notificationDuration = 2000; // ms
+char notificationText[21] = "";
+
 void renderDisplay(){
   display.clearDisplay();
+
+  if(notificationActive){
+    display.setTextSize(1);
+    display.setTextColor(SH110X_WHITE);
+
+    char line1[21];
+    char line2[21] = "";
+    strncpy(line1, notificationText, sizeof(line1));
+    line1[sizeof(line1) - 1] = '\0';
+
+    char* sep = strchr(line1, ':');
+    if(sep != nullptr){
+      *sep = '\0';
+      char* rest = sep + 1;
+      while(*rest == ' ') rest++; // saute l'espace après ":"
+      strncpy(line2, rest, sizeof(line2));
+      line2[sizeof(line2) - 1] = '\0';
+    }
+
+    int16_t x1, y1;
+    uint16_t w1, h1, w2, h2;
+    display.getTextBounds(line1, 0, 0, &x1, &y1, &w1, &h1);
+
+    if(strlen(line2) > 0){
+      display.getTextBounds(line2, 0, 0, &x1, &y1, &w2, &h2);
+
+      int16_t lineHeight = h1 + 4;
+      int16_t totalHeight = lineHeight * 2;
+      int16_t startY = (display.height() - totalHeight) / 2;
+
+      display.setCursor((display.width() - (int16_t)w1) / 2, startY);
+      display.print(line1);
+
+      display.setCursor((display.width() - (int16_t)w2) / 2, startY + lineHeight);
+      display.print(line2);
+    } else {
+      display.setCursor((display.width() - (int16_t)w1) / 2, (display.height() - (int16_t)h1) / 2);
+      display.print(line1);
+    }
+
+    display.display();
+    return;
+  }
 
   display.setTextSize(1);
   display.setTextColor(SH110X_WHITE);
@@ -159,6 +224,15 @@ void handleOutputReport(uint8_t* data, uint8_t len){
     clockHour = data[1];
     clockMinute = data[2];
     clockSet = true;
+    renderDisplay();
+  } else if(data[0] == 0x03 && len >= 2){
+    uint8_t textLen = data[1];
+    if(textLen > 20) textLen = 20;
+    if(len < (uint8_t)(2 + textLen)) textLen = len - 2;
+    memcpy(notificationText, &data[2], textLen);
+    notificationText[textLen] = '\0';
+    notificationActive = true;
+    notificationStart = millis();
     renderDisplay();
   }
 }
@@ -255,6 +329,10 @@ void loop() {
     if(count > 0){
       handleOutputReport(buffer, (uint8_t)count);
     }
+  }
+  if(notificationActive && (millis() - notificationStart >= notificationDuration)){
+    notificationActive = false;
+    renderDisplay();
   }
 }
 

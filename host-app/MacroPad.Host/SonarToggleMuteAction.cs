@@ -11,10 +11,13 @@ public class SonarToggleMuteAction : IAction
     private readonly string _channel;
     private bool? _lastKnownMuted;
 
-    public SonarToggleMuteAction(string address, string channel)
+    private readonly IPadNotifier? _notifier;
+
+    public SonarToggleMuteAction(string address, string channel, IPadNotifier? notifier = null)
     {
         _address = address;
         _channel = channel;
+        _notifier = notifier;
     }
 
     public void Execute()
@@ -43,6 +46,7 @@ public class SonarToggleMuteAction : IAction
                 .GetBoolean();
 
             _lastKnownMuted = actualMuted;
+            _notifier?.ShowNotification($"{_channel}: {(actualMuted ? "Mute" : "Actif")}");
             Console.WriteLine($"[SonarToggleMute] {_channel} -> muted={actualMuted}");
         }
         catch (Exception ex)

@@ -11,15 +11,18 @@ public class SonarCycleDeviceAction : IAction
     private readonly string _channel; // "render" ou "mic"
     private readonly List<string>? _explicitDeviceIds;
 
-    private string[] _deviceIds = Array.Empty<string>();
+    private (string Id, string FriendlyName)[] _devices = Array.Empty<(string, string)>();
     private int _index = -1;
     private bool _initialized;
 
-    public SonarCycleDeviceAction(string address, string channel, List<string>? explicitDeviceIds)
+    private readonly IPadNotifier? _notifier;
+
+    public SonarCycleDeviceAction(string address, string channel, List<string>? explicitDeviceIds, IPadNotifier? notifier = null)
     {
         _address = address;
         _channel = channel;
         _explicitDeviceIds = explicitDeviceIds;
+        _notifier = notifier;
     }
 
     public void Execute() => _ = ExecuteAsync();
@@ -32,30 +35,38 @@ public class SonarCycleDeviceAction : IAction
             _initialized = true;
         }
 
-        if (_deviceIds.Length == 0)
+        if (_devices.Length == 0)
         {
             Console.WriteLine($"[SonarCycleDevice] Aucun périphérique disponible pour \"{_channel}\".");
             return;
         }
 
-        _index = (_index + 1) % _deviceIds.Length;
-        var deviceId = _deviceIds[_index];
+        _index = (_index + 1) % _devices.Length;
+        var (deviceId, friendlyName) = _devices[_index];
 
         Console.WriteLine($"[SonarCycleDevice] {_channel} -> device #{_index} ({deviceId})");
         new SonarSetDeviceAction(_address, _channel, deviceId).Execute();
+
+        var label = _channel == "mic" ? "Micro" : "Sortie";
+        _notifier?.ShowNotification($"{label}: {friendlyName}");
     }
 
     private async Task InitializeAsync()
     {
+        var dataFlow = _channel == "mic" ? "capture" : "render";
+
         if (_explicitDeviceIds is { Count: > 0 })
         {
-            _deviceIds = _explicitDeviceIds.ToArray();
+            // On résout quand même les noms conviviaux pour les IDs explicites, pour l'affichage.
+            var resolved = await SonarDeviceResolver.GetPhysicalDevicesAsync(Client, _address, dataFlow);
+            _devices = _explicitDeviceIds
+                .Select(id => (id, resolved.FirstOrDefault(d => d.Id == id).FriendlyName ?? id))
+                .ToArray();
         }
         else
         {
-            var dataFlow = _channel == "mic" ? "capture" : "render";
             var devices = await SonarDeviceResolver.GetPhysicalDevicesAsync(Client, _address, dataFlow);
-            _deviceIds = devices.Select(d => d.Id).ToArray();
+            _devices = devices.Select(d => (d.Id, d.FriendlyName)).ToArray();
 
             Console.WriteLine($"[SonarCycleDevice] {_channel} : {devices.Count} périphérique(s) détecté(s) -> "
                 + string.Join(", ", devices.Select(d => d.FriendlyName)));
@@ -83,7 +94,7 @@ public class SonarCycleDeviceAction : IAction
 
             if (currentId is not null)
             {
-                var idx = Array.IndexOf(_deviceIds, currentId);
+                var idx = Array.FindIndex(_devices, d => d.Id == currentId);
                 if (idx >= 0) _index = idx;
             }
         }

@@ -11,11 +11,14 @@ public class SonarVolumeEncoderAction : IEncoderAction
     private readonly string _channel;
     private readonly double _step;
 
-    public SonarVolumeEncoderAction(string sonarAddress, string channel, double step = 0.05)
+    private readonly IPadNotifier? _notifier;
+
+    public SonarVolumeEncoderAction(string sonarAddress, string channel, double step = 0.05, IPadNotifier? notifier = null)
     {
         _sonarAddress = sonarAddress;
         _channel = channel;
         _step = step;
+        _notifier = notifier;
     }
 
     public async void Execute(int ticks)
@@ -43,6 +46,8 @@ public class SonarVolumeEncoderAction : IEncoderAction
             if (response.IsSuccessStatusCode)
             {
                 SonarVolumeState.Set(_channel, newVolume);
+                var percent = (int)Math.Round(newVolume * 100);
+                _notifier?.ShowNotification($"{_channel}: {percent}%");
                 Console.WriteLine($"[SonarVolume] OK ({response.StatusCode}) -> URL appelée : {url}");
             }
             else

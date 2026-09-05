@@ -16,11 +16,14 @@ public class SonarSetDeviceAction : IAction
     private readonly string _deviceId;
     private readonly string _channel; // "render" ou "mic"
 
-    public SonarSetDeviceAction(string address, string channel, string deviceId)
+    private readonly IPadNotifier? _notifier;
+
+    public SonarSetDeviceAction(string address, string channel, string deviceId, IPadNotifier? notifier = null)
     {
         _address = address;
         _channel = channel;
         _deviceId = deviceId;
+        _notifier = notifier;
     }
 
     public void Execute() => _ = ApplyAsync();
@@ -30,13 +33,19 @@ public class SonarSetDeviceAction : IAction
         var encodedId = Uri.EscapeDataString(_deviceId);
         var url = $"http://{_address}/classicRedirections/{_channel}/deviceId/{encodedId}";
 
-        try
+    try
+    {
+        var response = await Client.PutAsync(url, new StringContent(""));
+        if (response.IsSuccessStatusCode)
         {
-            var response = await Client.PutAsync(url, new StringContent(""));
-            Console.WriteLine(response.IsSuccessStatusCode
-                ? $"[SonarDevice] {_channel} -> {_deviceId} OK"
-                : $"[SonarDevice] {_channel} -> ERREUR ({response.StatusCode}) : {url}");
+            Console.WriteLine($"[SonarDevice] {_channel} -> {_deviceId} OK");
+            await NotifyAsync();
         }
+        else
+        {
+            Console.WriteLine($"[SonarDevice] {_channel} -> ERREUR ({response.StatusCode}) : {url}");
+        }
+    }
         catch (Exception ex)
         {
             Console.WriteLine($"[SonarDevice] EXCEPTION ({_channel}) : {ex.Message}");
@@ -50,5 +59,17 @@ public class SonarSetDeviceAction : IAction
             ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true
         };
         return new HttpClient(handler);
+    }
+
+    private async Task NotifyAsync()
+    {
+        if (_notifier is null) return;
+
+        var dataFlow = _channel == "mic" ? "capture" : "render";
+        var devices = await SonarDeviceResolver.GetPhysicalDevicesAsync(Client, _address, dataFlow);
+        var name = devices.FirstOrDefault(d => d.Id == _deviceId).FriendlyName ?? _deviceId;
+        var label = _channel == "mic" ? "Micro" : "Sortie";
+
+        _notifier.ShowNotification($"{label}: {name}");
     }
 }
