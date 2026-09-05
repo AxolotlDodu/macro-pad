@@ -3,6 +3,7 @@
         xmlns:vm="using:MacroPad.Host"
         x:Class="MacroPad.Host.ConfigWindow"
         Title="MacroPad - Configuration"
+        Icon="avares://MacroPad.Host/Assets/tray.ico"
         Width="900" Height="680"
         Background="#1E1E2E">
 
