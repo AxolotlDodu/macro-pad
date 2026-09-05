@@ -60,6 +60,11 @@ public partial class EncoderEditWindow : Window
         _rotationTargetComboBox = this.FindControl<ComboBox>("RotationTargetComboBox")!;
         _rotationStepBox = this.FindControl<TextBox>("RotationStepBox")!;
 
+        _clickTargetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
+            (value, _) => new TextBlock { Text = SonarChannels.GetDisplayName(value) });
+        _rotationTargetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
+            (value, _) => new TextBlock { Text = SonarChannels.GetDisplayName(value) });
+
         _headerText.Text = label;
 
         _clickTypeBox.ItemsSource = ButtonTypes;

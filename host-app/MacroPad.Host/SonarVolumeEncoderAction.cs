@@ -47,7 +47,7 @@ public class SonarVolumeEncoderAction : IEncoderAction
             {
                 SonarVolumeState.Set(_channel, newVolume);
                 var percent = (int)Math.Round(newVolume * 100);
-                _notifier?.ShowNotification($"{_channel}: {percent}%");
+                _notifier?.ShowNotification($"{SonarChannels.GetDisplayName(_channel)}: {percent}%");
                 Console.WriteLine($"[SonarVolume] OK ({response.StatusCode}) -> URL appelée : {url}");
             }
             else

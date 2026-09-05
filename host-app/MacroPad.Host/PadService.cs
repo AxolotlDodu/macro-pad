@@ -1,4 +1,6 @@
 using HidSharp;
+using System.Globalization;
+using System.Text;
 
 namespace MacroPad.Host;
 
@@ -176,11 +178,23 @@ public class PadService : IPadNotifier
         if (index >= 0) SendPageInfo(pageName, index + 1, _pages.Count);
     }
 
+    private static string ToAsciiSafe(string text)
+    {
+        var normalized = text.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder();
+        foreach (var c in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+        }
+        return sb.ToString().Normalize(NormalizationForm.FormC);
+    }
+
     private void SendPageInfo(string name, int index, int total)
     {
         if (_currentProfile != PadProfile.TenKeyScreen) return;
 
-        var bytes = System.Text.Encoding.ASCII.GetBytes(name);
+        var bytes = System.Text.Encoding.ASCII.GetBytes(ToAsciiSafe(name));
         var len = Math.Min(bytes.Length, 20);
 
         var report = new byte[64];
@@ -197,7 +211,7 @@ public class PadService : IPadNotifier
     {
         if (_currentProfile != PadProfile.TenKeyScreen) return;
 
-        var bytes = System.Text.Encoding.ASCII.GetBytes(text);
+        var bytes = System.Text.Encoding.ASCII.GetBytes(ToAsciiSafe(text));
         var len = Math.Min(bytes.Length, 20);
 
         var report = new byte[64];

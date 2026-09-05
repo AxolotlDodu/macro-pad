@@ -1,8 +1,19 @@
 namespace MacroPad.Host;
 
-/// <summary>Liste fermée des channels Sonar utilisés par sonar-toggle-mute et sonar-volume.
-/// À ajuster si tu ajoutes/retires des channels dans Sonar.</summary>
 public static class SonarChannels
 {
     public static readonly string[] All = { "master", "game", "chatRender", "media", "aux", "chatCapture" };
+
+    private static readonly Dictionary<string, string> DisplayNames = new()
+    {
+        ["master"] = "Général",
+        ["game"] = "Jeu",
+        ["chatRender"] = "Chat",
+        ["media"] = "Média",
+        ["aux"] = "Aux",
+        ["chatCapture"] = "Micro"
+    };
+
+    public static string GetDisplayName(string channel) =>
+        DisplayNames.TryGetValue(channel, out var name) ? name : channel;
 }

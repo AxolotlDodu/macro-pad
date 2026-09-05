@@ -62,6 +62,9 @@ public partial class BindingEditWindow : Window
         _methodBox = this.FindControl<ComboBox>("MethodBox")!;
         _stepBox = this.FindControl<TextBox>("StepBox")!;
 
+        _targetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
+            (value, _) => new TextBlock { Text = SonarChannels.GetDisplayName(value) });
+
         _headerText.Text = label;
 
         _typeBox.ItemsSource = mode == BindingEditMode.Encoder ? EncoderTypes : ButtonTypes;

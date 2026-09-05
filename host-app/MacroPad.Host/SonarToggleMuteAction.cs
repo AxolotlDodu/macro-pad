@@ -46,7 +46,7 @@ public class SonarToggleMuteAction : IAction
                 .GetBoolean();
 
             _lastKnownMuted = actualMuted;
-            _notifier?.ShowNotification($"{_channel}: {(actualMuted ? "Mute" : "Actif")}");
+            _notifier?.ShowNotification($"{SonarChannels.GetDisplayName(_channel)}: {(actualMuted ? "Mute" : "Actif")}");
             Console.WriteLine($"[SonarToggleMute] {_channel} -> muted={actualMuted}");
         }
         catch (Exception ex)
