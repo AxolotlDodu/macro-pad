@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MacroPad.Host.ProfileSelectWindow"
+        Title="Quel MacroPad utilises-tu ?"
+        Icon="avares://MacroPad.Host/Assets/tray.ico"
+        Width="380" SizeToContent="Height"
+        Background="#1E1E2E"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False">
+    <StackPanel Margin="24" Spacing="16">
+        <TextBlock Text="Sélectionne ta version de MacroPad" FontSize="16"
+                   FontWeight="Bold" Foreground="#CDD6F4"/>
+
+        <RadioButton x:Name="TenKeyOption" GroupName="profile" IsChecked="True"
+                     Content="MacroPad v2 : 10 touches + écran + 2 encodeurs" Foreground="#CDD6F4"/>
+        <RadioButton x:Name="TwelveKeyOption" GroupName="profile"
+                     Content="MacroPad v1 : 12 touches, sans écran" Foreground="#CDD6F4"/>
+
+        <Button Content="Valider" Click="OnOkClick" HorizontalAlignment="Right"
+                Padding="16,8" Background="#89B4FA" Foreground="#1E1E2E" FontWeight="Bold"/>
+    </StackPanel>
+</Window>

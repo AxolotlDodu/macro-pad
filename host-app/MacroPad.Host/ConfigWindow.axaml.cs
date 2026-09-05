@@ -22,6 +22,12 @@ public partial class ConfigWindow : Window
     private Button _enc1Button = null!;
     private Button _enc2Button = null!;
 
+    private readonly Dictionary<int, Button> _bitButtonsTwelveKey = new();
+    private StackPanel _tenKeyLayout = null!;
+    private Border _twelveKeyLayout = null!;
+    private ComboBox _pageSwitchBox = null!;
+    private static readonly Avalonia.Media.IBrush ReservedBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F9E2AF"));
+
     private static readonly Avalonia.Media.IBrush AssignedBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#89B4FA"));
     private static readonly Avalonia.Media.IBrush UnassignedPadBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#313244"));
     private static readonly Avalonia.Media.IBrush AssignedForeground = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#1E1E2E"));
@@ -53,8 +59,38 @@ public partial class ConfigWindow : Window
         _enc1Button = this.FindControl<Button>("Enc1Button")!;
         _enc2Button = this.FindControl<Button>("Enc2Button")!;
 
+        _tenKeyLayout = this.FindControl<StackPanel>("TenKeyLayout")!;
+        _twelveKeyLayout = this.FindControl<Border>("TwelveKeyLayout")!;
+
+        _bitButtonsTwelveKey[0]  = this.FindControl<Button>("Bit0b")!;
+        _bitButtonsTwelveKey[1]  = this.FindControl<Button>("Bit1b")!;
+        _bitButtonsTwelveKey[2]  = this.FindControl<Button>("Bit2b")!;
+        _bitButtonsTwelveKey[3]  = this.FindControl<Button>("Bit3b")!;
+        _bitButtonsTwelveKey[4]  = this.FindControl<Button>("Bit4b")!;
+        _bitButtonsTwelveKey[5]  = this.FindControl<Button>("Bit5b")!;
+        _bitButtonsTwelveKey[6]  = this.FindControl<Button>("Bit6b")!;
+        _bitButtonsTwelveKey[7]  = this.FindControl<Button>("Bit7b")!;
+        _bitButtonsTwelveKey[8]  = this.FindControl<Button>("Bit8b")!;
+        _bitButtonsTwelveKey[9]  = this.FindControl<Button>("Bit9b")!;
+        _bitButtonsTwelveKey[10] = this.FindControl<Button>("Bit10b")!;
+        _bitButtonsTwelveKey[11] = this.FindControl<Button>("Bit11b")!;
+
+        _pageSwitchBox = this.FindControl<ComboBox>("PageSwitchBox")!;
+        _pageSwitchBox.ItemsSource = Enumerable.Range(1, 12).Select(n => n.ToString()).ToList();
+        _pageSwitchBox.SelectedItem = (_config.PageSwitchBit + 1).ToString();
+        _pageSwitchBox.SelectionChanged += (_, _) =>
+        {
+            if (_config.Profile != PadProfile.TwelveKeyNoScreen) return; // bit 9 fixe en 10 touches, non modifiable ici
+
+            if (int.TryParse(_pageSwitchBox.SelectedItem as string, out var n))
+                _config.PageSwitchBit = n - 1;
+            if (_currentPage is not null) RefreshPadButtons(_currentPage);
+        };
+
         _pageListBox.ItemsSource = _pages;
         _pageListBox.DisplayMemberBinding = new Binding("Name");
+
+        ApplyProfileLayout();
 
         _pageListBox.SelectedIndex = 0;
     }
@@ -76,27 +112,66 @@ public partial class ConfigWindow : Window
         RefreshPadButtons(page);
     }
 
-        private void RefreshPadButtons(PageConfig page)
+    private void RefreshPadButtons(PageConfig page)
     {
-        foreach (var (bit, button) in _bitButtons)
+        var activeButtons = _config.Profile == PadProfile.TenKeyScreen ? _bitButtons : _bitButtonsTwelveKey;
+
+        foreach (var (bit, button) in activeButtons)
         {
+            if (bit == _config.PageSwitchBit)
+            {
+                button.Content = $"{bit + 1}\nPAGE";
+                button.Background = ReservedBrush;
+                button.Foreground = AssignedForeground;
+                button.FontWeight = Avalonia.Media.FontWeight.Bold;
+                continue;
+            }
+
             page.Bindings.TryGetValue(bit.ToString(), out var binding);
             bool assigned = binding is not null && binding.Type != "none";
             SetButtonState(button, (bit + 1).ToString(), assigned);
         }
 
-        page.Encoders.TryGetValue("1", out var enc1Rotation);
-        page.Encoders.TryGetValue("2", out var enc2Rotation);
-        page.Bindings.TryGetValue("10", out var enc1Click);
-        page.Bindings.TryGetValue("11", out var enc2Click);
+        if (_config.Profile == PadProfile.TenKeyScreen)
+        {
+            page.Encoders.TryGetValue("1", out var enc1Rotation);
+            page.Encoders.TryGetValue("2", out var enc2Rotation);
+            page.Bindings.TryGetValue("10", out var enc1Click);
+            page.Bindings.TryGetValue("11", out var enc2Click);
 
-        bool enc1Assigned = (enc1Rotation is not null && enc1Rotation.Type != "none")
-                          || (enc1Click is not null && enc1Click.Type != "none");
-        bool enc2Assigned = (enc2Rotation is not null && enc2Rotation.Type != "none")
-                          || (enc2Click is not null && enc2Click.Type != "none");
+            bool enc1Assigned = (enc1Rotation is not null && enc1Rotation.Type != "none")
+                            || (enc1Click is not null && enc1Click.Type != "none");
+            bool enc2Assigned = (enc2Rotation is not null && enc2Rotation.Type != "none")
+                            || (enc2Click is not null && enc2Click.Type != "none");
 
-        SetButtonState(_enc1Button, "1", enc1Assigned);
-        SetButtonState(_enc2Button, "2", enc2Assigned);
+            SetButtonState(_enc1Button, "1", enc1Assigned);
+            SetButtonState(_enc2Button, "2", enc2Assigned);
+        }
+    }
+
+    private void ApplyProfileLayout()
+    {
+        bool isTenKey = _config.Profile == PadProfile.TenKeyScreen;
+        _tenKeyLayout.IsVisible = isTenKey;
+        _twelveKeyLayout.IsVisible = !isTenKey;
+
+        if (_currentPage is not null) RefreshPadButtons(_currentPage);
+    }
+
+    private async void OnChangeProfileClick(object? sender, RoutedEventArgs e)
+    {
+        var dlg = new ProfileSelectWindow(_config.Profile);
+        await dlg.ShowDialog(this);
+        if (dlg.Result == _config.Profile) return;
+
+        _config.Profile = dlg.Result;
+        _config.PageSwitchBit = _config.Profile == PadProfile.TenKeyScreen ? 9 : 11;
+        _config.Save(_configPath);
+
+        _pageSwitchBox.SelectedItem = (_config.PageSwitchBit + 1).ToString(); // resynchronise l'affichage même si masqué
+
+        ApplyProfileLayout();
+        Console.WriteLine($"[ConfigWindow] Profil changé -> {_config.Profile}.");
     }
 
     private static void SetButtonState(Button button, string number, bool assigned)
@@ -119,6 +194,7 @@ public partial class ConfigWindow : Window
     {
         if (_currentPage is null || sender is not Button btn) return;
         var bit = int.Parse((string)btn.Tag!);
+        if (bit == _config.PageSwitchBit) return; // touche réservée, non éditable
 
         _currentPage.Bindings.TryGetValue(bit.ToString(), out var existing);
 

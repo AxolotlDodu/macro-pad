@@ -43,7 +43,10 @@
                 <TextBlock DockPanel.Dock="Top" Text="Pages"
                            FontSize="20" FontWeight="Bold"
                            Foreground="#CDD6F4" Margin="0,0,0,12"/>
-
+                <Button x:Name="ChangeProfileButton" DockPanel.Dock="Top"
+                    Content="Changer de version de pad" Click="OnChangeProfileClick"
+                    HorizontalAlignment="Stretch" Background="#45475A" Foreground="#CDD6F4"
+                    Padding="8" Margin="0,0,0,12"/>
                 <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
                     <Button x:Name="AddPageButton" Content="+ Ajouter une page"
                             Click="OnAddPageClick" HorizontalAlignment="Stretch"
@@ -78,14 +81,15 @@
             </StackPanel>
 
             <!-- Zone touches + zone encodeurs, côte à côte -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <!-- Layout 10 touches + écran + encodeurs -->
+            <StackPanel x:Name="TenKeyLayout" Grid.Row="2" Orientation="Horizontal" Spacing="16"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
 
-                <!-- Zone 1 : grille 3x3 des touches -->
                 <Border Background="#181825" CornerRadius="10" Padding="20">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="TOUCHES" Classes="zoneTitle" HorizontalAlignment="Center"/>
-                            <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto"
-                              ColumnSpacing="14" RowSpacing="14">
+                        <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto"
+                            ColumnSpacing="14" RowSpacing="14">
                             <Button x:Name="Bit0" Grid.Column="0" Grid.Row="0" Tag="0" Click="OnBitButtonClick" Classes="pad"/>
                             <Button x:Name="Bit1" Grid.Column="1" Grid.Row="0" Tag="1" Click="OnBitButtonClick" Classes="pad"/>
                             <Button x:Name="Bit2" Grid.Column="2" Grid.Row="0" Tag="2" Click="OnBitButtonClick" Classes="pad"/>
@@ -99,7 +103,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Zone 2 : encodeurs -->
                 <Border Background="#181825" CornerRadius="10" Padding="20" VerticalAlignment="Center">
                     <StackPanel HorizontalAlignment="Center">
                         <TextBlock Text="ENCODEURS" Classes="zoneTitle" HorizontalAlignment="Center"/>
@@ -111,8 +114,36 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-
             </StackPanel>
+
+            <!-- Layout 12 touches sans écran -->
+            <Border x:Name="TwelveKeyLayout" Grid.Row="2" Background="#181825" CornerRadius="10" Padding="20"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center" Spacing="14">
+                    <TextBlock Text="TOUCHES" Classes="zoneTitle" HorizontalAlignment="Center"/>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Text="Touche de changement de page :" Classes="label" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="PageSwitchBox" Width="70"/>
+                    </StackPanel>
+
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto"
+                        ColumnSpacing="14" RowSpacing="14">
+                        <Button x:Name="Bit0b"  Grid.Column="0" Grid.Row="0" Tag="0"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit1b"  Grid.Column="1" Grid.Row="0" Tag="1"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit2b"  Grid.Column="2" Grid.Row="0" Tag="2"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit3b"  Grid.Column="3" Grid.Row="0" Tag="3"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit4b"  Grid.Column="0" Grid.Row="1" Tag="4"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit5b"  Grid.Column="1" Grid.Row="1" Tag="5"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit6b"  Grid.Column="2" Grid.Row="1" Tag="6"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit7b"  Grid.Column="3" Grid.Row="1" Tag="7"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit8b"  Grid.Column="0" Grid.Row="2" Tag="8"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit9b"  Grid.Column="1" Grid.Row="2" Tag="9"  Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit10b" Grid.Column="2" Grid.Row="2" Tag="10" Click="OnBitButtonClick" Classes="pad"/>
+                        <Button x:Name="Bit11b" Grid.Column="3" Grid.Row="2" Tag="11" Click="OnBitButtonClick" Classes="pad"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
 
             <Button Grid.Row="3" Content="Enregistrer" Click="OnSaveClick"
                     HorizontalAlignment="Right" Margin="0,16,0,0"

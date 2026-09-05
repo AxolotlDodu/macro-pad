@@ -59,6 +59,25 @@ public class Config
 {
     public List<PageConfig> Pages { get; set; } = new();
 
+    [JsonIgnore]
+    public PadProfile Profile { get; set; } = PadProfile.TenKeyScreen;
+
+    [JsonIgnore]
+    public bool ProfileWasChosen { get; set; }
+
+    [JsonPropertyName("profile")]
+    public string? ProfileRaw
+    {
+        get => Profile.ToString();
+        set
+        {
+            if (value is not null && Enum.TryParse<PadProfile>(value, out var parsed))
+                Profile = parsed;
+        }
+    }
+
+    public int PageSwitchBit { get; set; } = 11; // touche 12 par défaut, bas à droite
+
     /// <summary>Client ID de l'application Discord (portail développeur), pour le RPC local.</summary>
     public string? DiscordClientId { get; set; }
 
@@ -76,7 +95,12 @@ public class Config
         if (!File.Exists(path)) return NewDefault();
 
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        using var probe = JsonDocument.Parse(File.ReadAllText(path));
+        bool hadProfile = probe.RootElement.TryGetProperty("profile", out _);
+
         var config = JsonSerializer.Deserialize<Config>(File.ReadAllText(path), options) ?? NewDefault();
+        config.ProfileWasChosen = hadProfile;
 
         // Migration : ancien format plat "bindings" -> une page unique "Default"
         if ((config.Pages is null || config.Pages.Count == 0) && config.LegacyBindings is { Count: > 0 })
@@ -105,12 +129,16 @@ public class Config
             }
         }
 
+        if (config.Profile == PadProfile.TenKeyScreen)
+            config.PageSwitchBit = 9;
+
         return config;
     }
 
     public void Save(string path)
     {
-        LegacyBindings = null; // on ne réécrit jamais l'ancien format
+        ProfileRaw = Profile.ToString();
+        LegacyBindings = null;
         var options = new JsonSerializerOptions { WriteIndented = true };
         File.WriteAllText(path, JsonSerializer.Serialize(this, options));
     }

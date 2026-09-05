@@ -9,13 +9,13 @@ public class PadService : IPadNotifier
 
     /// <summary>Bit du bouton pin 14 (10e switch). Verrouillé sur le changement de page,
     /// quelle que soit la config chargée — voir RunAsync.</summary>
-    private const int ReservedPageSwitchBit = 9;
-
     private const byte CmdSetNotification = 0x03;
 
     private readonly CancellationToken _token;
     private IPageSwitcher _pageSwitcher = null!;
     private string _configPath = "";
+    private PadProfile _currentProfile = PadProfile.TenKeyScreen;
+    private int _pageSwitchBit = 11;
     private string? _sonarAddress;
     private DiscordRpcClient? _discordClient;
 
@@ -79,6 +79,10 @@ public class PadService : IPadNotifier
     /// Appelé au démarrage et à chaque rechargement à chaud.</summary>
     private void ApplyConfig(Config config)
     {
+        _currentProfile = config.Profile;
+        _pageSwitchBit = config.PageSwitchBit;
+        int maxBit = _currentProfile == PadProfile.TenKeyScreen ? 11 : 11; // les deux exploitent des bits 0-11
+
         var bitActionsByPage = new Dictionary<string, Dictionary<int, IAction>>();
         var encoderActionsByPage = new Dictionary<string, Dictionary<int, IEncoderAction>>();
         var cycleAction = new SwitchPageAction(_pageSwitcher, null);
@@ -89,10 +93,11 @@ public class PadService : IPadNotifier
             foreach (var (key, binding) in page.Bindings)
             {
                 if (!int.TryParse(key, out var bit)) continue;
+                if (bit > maxBit) continue; // bit hors plage pour ce profil
 
-                if (bit == ReservedPageSwitchBit)
+                if (bit == _pageSwitchBit)
                 {
-                    Console.WriteLine($"[PadService] Page \"{page.Name}\" : binding sur le bit {ReservedPageSwitchBit} ignoré (réservé au changement de page).");
+                    Console.WriteLine($"[PadService] Page \"{page.Name}\" : binding sur le bit {_pageSwitchBit} ignoré (réservé au changement de page).");
                     continue;
                 }
 
@@ -103,7 +108,7 @@ public class PadService : IPadNotifier
                 if (action is not null) bitActions[bit] = action;
             }
 
-            bitActions[ReservedPageSwitchBit] = cycleAction;
+            bitActions[_pageSwitchBit] = cycleAction;
 
             var encoderActions = new Dictionary<int, IEncoderAction>();
             foreach (var (key, enc) in page.Encoders)
@@ -173,6 +178,8 @@ public class PadService : IPadNotifier
 
     private void SendPageInfo(string name, int index, int total)
     {
+        if (_currentProfile != PadProfile.TenKeyScreen) return;
+
         var bytes = System.Text.Encoding.ASCII.GetBytes(name);
         var len = Math.Min(bytes.Length, 20);
 
@@ -188,6 +195,8 @@ public class PadService : IPadNotifier
 
     public void ShowNotification(string text)
     {
+        if (_currentProfile != PadProfile.TenKeyScreen) return;
+
         var bytes = System.Text.Encoding.ASCII.GetBytes(text);
         var len = Math.Min(bytes.Length, 20);
 
@@ -203,6 +212,12 @@ public class PadService : IPadNotifier
     {
         while (!_token.IsCancellationRequested)
         {
+            if (_currentProfile != PadProfile.TenKeyScreen)
+            {
+                await Task.Delay(5000, _token); // pas d'écran, on repasse juste régulièrement au cas où le profil change
+                continue;
+            }
+
             var now = DateTime.Now;
             var report = new byte[64];
             report[0] = 0x02; // CMD_SET_TIME
