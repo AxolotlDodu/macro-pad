@@ -92,6 +92,19 @@ public class Config
             config.Pages = new List<PageConfig> { new PageConfig { Name = "Default" } };
 
         config.LegacyBindings = null;
+
+        // Secrets Discord chargés depuis un fichier séparé, non versionné.
+        var secretsPath = Path.Combine(Path.GetDirectoryName(path)!, "secrets.json");
+        if (File.Exists(secretsPath))
+        {
+            var secrets = JsonSerializer.Deserialize<Config>(File.ReadAllText(secretsPath), options);
+            if (secrets is not null)
+            {
+                config.DiscordClientId = secrets.DiscordClientId ?? config.DiscordClientId;
+                config.DiscordClientSecret = secrets.DiscordClientSecret ?? config.DiscordClientSecret;
+            }
+        }
+
         return config;
     }
 
