@@ -75,7 +75,7 @@
                 <TextBlock Text="DÉTECTION AUTOMATIQUE (noms de process, séparés par des virgules)"
                            FontSize="11" Foreground="#6C7086"/>
                 <TextBox x:Name="AppMatchersBox"
-                         Watermark="ex: VALORANT-Win64-Shipping, cs2, csgo"
+                         PlaceholderText="ex: VALORANT-Win64-Shipping, cs2, csgo"
                          Background="#313244" Foreground="#CDD6F4" BorderThickness="0"
                          Padding="8"/>
             </StackPanel>

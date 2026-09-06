@@ -8,4 +8,14 @@ obj/
 *.user
 .vs/
 **/publish/
-secrets.json
+
+# Build .NET
+host-app/MacroPad.Host/bin/
+host-app/MacroPad.Host/obj/
+
+# Secrets (jamais commités)
+**/secrets.json
+**/config.json
+
+# Sortie Inno Setup
+installer/Output/
