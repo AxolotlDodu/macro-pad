@@ -1,6 +1,7 @@
 using HidSharp;
 using System.Globalization;
 using System.Text;
+using MacroPad.Host.Integrations;
 
 namespace MacroPad.Host;
 
@@ -18,8 +19,7 @@ public class PadService : IPadNotifier
     private string _configPath = "";
     private PadProfile _currentProfile = PadProfile.TenKeyScreen;
     private int _pageSwitchBit = 11;
-    private string? _sonarAddress;
-    private DiscordRpcClient? _discordClient;
+    private IntegrationRegistry _registry = null!;
 
     private readonly Dictionary<int, DateTime> _lastBitTrigger = new();
     private static readonly TimeSpan DebounceWindow = TimeSpan.FromMilliseconds(150);
@@ -44,10 +44,8 @@ public class PadService : IPadNotifier
     {
         _configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
         var config = Config.Load(_configPath);
-        _sonarAddress = await SonarAddressResolver.GetSonarAddressAsync();
-        _discordClient = config.DiscordClientId is not null
-            ? new DiscordRpcClient(config.DiscordClientId, config.DiscordClientSecret!)
-            : null;
+        _registry = new IntegrationRegistry(IntegrationCatalog.CreateAll(config));
+        await _registry.InitializeAllAsync();
 
         _pageSwitcher = new PageSwitcher(config.Pages);
         ApplyConfig(config);
@@ -88,6 +86,8 @@ public class PadService : IPadNotifier
         var bitActionsByPage = new Dictionary<string, Dictionary<int, IAction>>();
         var encoderActionsByPage = new Dictionary<string, Dictionary<int, IEncoderAction>>();
         var cycleAction = new SwitchPageAction(_pageSwitcher, null);
+        var context = new IntegrationContext(_pageSwitcher, this);
+        var sonarAddress = _registry.Get<SonarIntegration>()?.Address;
 
         foreach (var page in config.Pages)
         {
@@ -103,10 +103,10 @@ public class PadService : IPadNotifier
                     continue;
                 }
 
-                if (binding.Target.Contains("{sonar}") && _sonarAddress is not null)
-                    binding.Target = binding.Target.Replace("{sonar}", _sonarAddress);
+                if (binding.Target.Contains("{sonar}") && sonarAddress is not null)
+                    binding.Target = binding.Target.Replace("{sonar}", sonarAddress);
 
-                var action = ActionFactory.Create(binding, _sonarAddress, _pageSwitcher, _discordClient, this);
+                var action = _registry.CreateAction(binding.Type, binding, context);
                 if (action is not null) bitActions[bit] = action;
             }
 
@@ -116,7 +116,7 @@ public class PadService : IPadNotifier
             foreach (var (key, enc) in page.Encoders)
             {
                 if (!int.TryParse(key, out var idx)) continue;
-                var action = ActionFactory.CreateEncoder(enc, _sonarAddress, this);
+                var action = _registry.CreateEncoderAction(enc.Type, enc, context);
                 if (action is not null) encoderActions[idx] = action;
             }
 

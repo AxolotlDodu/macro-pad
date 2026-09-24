@@ -1,23 +1,15 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using MacroPad.Host.Integrations;
 
 namespace MacroPad.Host;
 
 public partial class EncoderEditWindow : Window
 {
-    private static readonly string[] ButtonTypes =
-    {
-        "none", "launch", "url", "keystroke", "http",
-        "sonar-toggle-mute", "sonar-set-output", "sonar-set-mic",
-        "sonar-cycle-output", "sonar-cycle-mic",
-        "discord-toggle-mute", "discord-toggle-deafen", "switch-page"
-    };
-
-    private static readonly string[] RotationTypes = { "none", "sonar-volume" };
-    private static readonly string[] ChannelBasedClickTypes = { "sonar-toggle-mute" };
-
     private readonly IReadOnlyList<string> _pageNames;
+    private readonly IReadOnlyList<ActionTypeDescriptor> _clickDescriptors;
+    private readonly IReadOnlyList<ActionTypeDescriptor> _rotationDescriptors;
 
     private TextBlock _headerText = null!;
     private ComboBox _clickTypeBox = null!, _clickTargetComboBox = null!, _clickMethodBox = null!;
@@ -40,9 +32,13 @@ public partial class EncoderEditWindow : Window
         string label,
         string currentClickType, string currentClickTarget, string currentClickMethod,
         string currentRotationType, string currentRotationTarget, double currentRotationStep,
-        IReadOnlyList<string> pageNames)
+        IReadOnlyList<string> pageNames,
+        IReadOnlyList<ActionTypeDescriptor> clickActionTypes,
+        IReadOnlyList<ActionTypeDescriptor> rotationActionTypes)
     {
         _pageNames = pageNames;
+        _clickDescriptors = clickActionTypes;
+        _rotationDescriptors = rotationActionTypes;
 
         AvaloniaXamlLoader.Load(this);
 
@@ -60,43 +56,41 @@ public partial class EncoderEditWindow : Window
         _rotationTargetComboBox = this.FindControl<ComboBox>("RotationTargetComboBox")!;
         _rotationStepBox = this.FindControl<TextBox>("RotationStepBox")!;
 
-        _clickTargetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
-            (value, _) => new TextBlock { Text = SonarChannels.GetDisplayName(value) });
-        _rotationTargetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
-            (value, _) => new TextBlock { Text = SonarChannels.GetDisplayName(value) });
-
         _headerText.Text = label;
 
-        _clickTypeBox.ItemsSource = ButtonTypes;
+        var clickIds = new List<string> { "none" };
+        clickIds.AddRange(_clickDescriptors.Select(d => d.Id));
+        _clickTypeBox.ItemsSource = clickIds;
         _clickTypeBox.SelectedItem = currentClickType;
         if (_clickTypeBox.SelectedItem is null) _clickTypeBox.SelectedIndex = 0;
         _clickTargetTextBox.Text = currentClickTarget;
         _clickMethodBox.SelectedItem = currentClickMethod;
 
-        _rotationTypeBox.ItemsSource = RotationTypes;
+        var rotationIds = new List<string> { "none" };
+        rotationIds.AddRange(_rotationDescriptors.Select(d => d.Id));
+        _rotationTypeBox.ItemsSource = rotationIds;
         _rotationTypeBox.SelectedItem = currentRotationType;
         if (_rotationTypeBox.SelectedItem is null) _rotationTypeBox.SelectedIndex = 0;
-        _rotationTargetComboBox.ItemsSource = SonarChannels.All;
-        _rotationTargetComboBox.SelectedItem = SonarChannels.All.Contains(currentRotationTarget)
-            ? currentRotationTarget
-            : SonarChannels.All.FirstOrDefault();
         _rotationStepBox.Text = currentRotationStep.ToString("0.###");
 
         _clickTypeBox.SelectionChanged += (_, _) => UpdateClickFieldsVisibility(currentClickTarget);
-        _rotationTypeBox.SelectionChanged += (_, _) => UpdateRotationFieldsVisibility();
+        _rotationTypeBox.SelectionChanged += (_, _) => UpdateRotationFieldsVisibility(currentRotationTarget);
 
         UpdateClickFieldsVisibility(currentClickTarget);
-        UpdateRotationFieldsVisibility();
+        UpdateRotationFieldsVisibility(currentRotationTarget);
     }
 
     private void UpdateClickFieldsVisibility(string currentTarget)
     {
         var type = _clickTypeBox.SelectedItem as string ?? "none";
+        var descriptor = _clickDescriptors.FirstOrDefault(d => d.Id == type);
+        var target = descriptor?.Target ?? TargetKind.None;
 
-        _clickMethodPanel.IsVisible = type == "http";
+        _clickMethodPanel.IsVisible = descriptor?.SupportsHttpMethod ?? false;
 
-        if (type == "switch-page")
+        if (target == TargetKind.PageCombo)
         {
+            _clickTargetComboBox.ItemTemplate = null;
             _clickTargetComboBox.ItemsSource = _pageNames;
             _clickTargetComboBox.SelectedItem = _pageNames.Contains(currentTarget)
                 ? currentTarget
@@ -105,33 +99,51 @@ public partial class EncoderEditWindow : Window
             _clickTargetComboPanel.IsVisible = true;
             _clickTargetTextPanel.IsVisible = false;
         }
-        else if (ChannelBasedClickTypes.Contains(type))
+        else if (target == TargetKind.ChannelCombo && descriptor?.ComboOptions is { } options)
         {
-            _clickTargetComboBox.ItemsSource = SonarChannels.All;
-            _clickTargetComboBox.SelectedItem = SonarChannels.All.Contains(currentTarget)
+            _clickTargetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
+                (value, _) => new TextBlock { Text = descriptor.ComboDisplayName?.Invoke(value) ?? value });
+            _clickTargetComboBox.ItemsSource = options;
+            _clickTargetComboBox.SelectedItem = options.Contains(currentTarget)
                 ? currentTarget
-                : SonarChannels.All.FirstOrDefault();
+                : options.FirstOrDefault();
 
             _clickTargetComboPanel.IsVisible = true;
             _clickTargetTextPanel.IsVisible = false;
         }
-        else if (type is "none" or "discord-toggle-mute" or "discord-toggle-deafen"
-                 or "sonar-cycle-output" or "sonar-cycle-mic")
-        {
-            _clickTargetComboPanel.IsVisible = false;
-            _clickTargetTextPanel.IsVisible = false;
-        }
-        else
+        else if (target == TargetKind.FreeText)
         {
             _clickTargetComboPanel.IsVisible = false;
             _clickTargetTextPanel.IsVisible = true;
         }
+        else
+        {
+            _clickTargetComboPanel.IsVisible = false;
+            _clickTargetTextPanel.IsVisible = false;
+        }
     }
 
-    private void UpdateRotationFieldsVisibility()
+    private void UpdateRotationFieldsVisibility(string currentTarget)
     {
         var type = _rotationTypeBox.SelectedItem as string ?? "none";
-        _rotationTargetComboPanel.IsVisible = type == "sonar-volume";
+        var descriptor = _rotationDescriptors.FirstOrDefault(d => d.Id == type);
+        var target = descriptor?.Target ?? TargetKind.None;
+
+        if (target == TargetKind.ChannelCombo && descriptor?.ComboOptions is { } options)
+        {
+            _rotationTargetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
+                (value, _) => new TextBlock { Text = descriptor.ComboDisplayName?.Invoke(value) ?? value });
+            _rotationTargetComboBox.ItemsSource = options;
+            _rotationTargetComboBox.SelectedItem = options.Contains(currentTarget)
+                ? currentTarget
+                : options.FirstOrDefault();
+
+            _rotationTargetComboPanel.IsVisible = true;
+        }
+        else
+        {
+            _rotationTargetComboPanel.IsVisible = false;
+        }
     }
 
     private void OnOkClick(object? sender, RoutedEventArgs e)

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using MacroPad.Host.Integrations;
 
 namespace MacroPad.Host;
 
@@ -26,6 +27,9 @@ public partial class ConfigWindow : Window
     private StackPanel _tenKeyLayout = null!;
     private Border _twelveKeyLayout = null!;
     private ComboBox _pageSwitchBox = null!;
+
+    private readonly IReadOnlyList<ActionTypeDescriptor> _buttonActionTypes;
+    private readonly IReadOnlyList<ActionTypeDescriptor> _encoderActionTypes;
     private static readonly Avalonia.Media.IBrush ReservedBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F9E2AF"));
 
     private static readonly Avalonia.Media.IBrush AssignedBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#89B4FA"));
@@ -38,6 +42,10 @@ public partial class ConfigWindow : Window
         AvaloniaXamlLoader.Load(this);
         _configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
         _config = Config.Load(_configPath);
+
+        var integrations = IntegrationCatalog.CreateAll(_config);
+        _buttonActionTypes = integrations.SelectMany(i => i.ButtonActionTypes).ToList();
+        _encoderActionTypes = integrations.SelectMany(i => i.EncoderActionTypes).ToList();
 
         _pages = new ObservableCollection<PageConfig>(_config.Pages);
 
@@ -205,7 +213,8 @@ public partial class ConfigWindow : Window
             existing?.Target ?? "",
             existing?.Method ?? "GET",
             0,
-            _pages.Select(p => p.Name).ToList());
+            _pages.Select(p => p.Name).ToList(),
+            _buttonActionTypes);
 
         await dlg.ShowDialog(this);
         if (!dlg.Confirmed) return;
@@ -234,9 +243,15 @@ public partial class ConfigWindow : Window
 
         var dlg = new EncoderEditWindow(
             $"Encodeur {idx}",
-            existingClick?.Type ?? "none", existingClick?.Target ?? "", existingClick?.Method ?? "GET",
-            existingRotation?.Type ?? "none", existingRotation?.Target ?? "", existingRotation?.Step ?? 0.05,
-            _pages.Select(p => p.Name).ToList());
+            existingClick?.Type ?? "none",
+            existingClick?.Target ?? "",
+            existingClick?.Method ?? "GET",
+            existingRotation?.Type ?? "none",
+            existingRotation?.Target ?? "",
+            existingRotation?.Step ?? 0.05,
+            _pages.Select(p => p.Name).ToList(),
+            _buttonActionTypes,
+            _encoderActionTypes);
 
         await dlg.ShowDialog(this);
         if (!dlg.Confirmed) return;

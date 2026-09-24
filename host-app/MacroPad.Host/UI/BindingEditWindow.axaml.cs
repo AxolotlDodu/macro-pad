@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using MacroPad.Host.Integrations;
 
 namespace MacroPad.Host;
 
@@ -8,28 +9,9 @@ public enum BindingEditMode { Button, Encoder }
 
 public partial class BindingEditWindow : Window
 {
-    private static readonly string[] ButtonTypes =
-    {
-        "none", 
-        "launch", 
-        "url", 
-        "keystroke", 
-        "sonar-toggle-mute",
-        "sonar-set-output",
-        "sonar-set-mic",
-        "sonar-cycle-output",
-        "sonar-cycle-mic",
-        "discord-toggle-mute",
-        "discord-toggle-deafen"
-    };
-
-    private static readonly string[] EncoderTypes = { "none", "sonar-volume" };
-
-    // Types dont la cible est un channel Sonar fermé -> ComboBox au lieu de texte libre.
-    private static readonly string[] ChannelBasedTypes = { "sonar-toggle-mute", "sonar-volume" };
-
     private readonly BindingEditMode _mode;
     private readonly IReadOnlyList<string> _pageNames;
+    private readonly IReadOnlyList<ActionTypeDescriptor> _descriptors;
 
     private TextBlock _headerText = null!;
     private ComboBox _typeBox = null!;
@@ -44,10 +26,12 @@ public partial class BindingEditWindow : Window
     public double ResultStep { get; private set; } = 0.05;
 
     public BindingEditWindow(BindingEditMode mode, string label, string currentType, string currentTarget,
-        string currentMethod, double currentStep, IReadOnlyList<string> pageNames)
+        string currentMethod, double currentStep, IReadOnlyList<string> pageNames,
+        IReadOnlyList<ActionTypeDescriptor> actionTypes)
     {
         _mode = mode;
         _pageNames = pageNames;
+        _descriptors = actionTypes;
 
         AvaloniaXamlLoader.Load(this);
 
@@ -62,12 +46,11 @@ public partial class BindingEditWindow : Window
         _methodBox = this.FindControl<ComboBox>("MethodBox")!;
         _stepBox = this.FindControl<TextBox>("StepBox")!;
 
-        _targetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
-            (value, _) => new TextBlock { Text = SonarChannels.GetDisplayName(value) });
-
         _headerText.Text = label;
 
-        _typeBox.ItemsSource = mode == BindingEditMode.Encoder ? EncoderTypes : ButtonTypes;
+        var typeIds = new List<string> { "none" };
+        typeIds.AddRange(_descriptors.Select(d => d.Id));
+        _typeBox.ItemsSource = typeIds;
         _typeBox.SelectedItem = currentType;
         if (_typeBox.SelectedItem is null) _typeBox.SelectedIndex = 0;
 
@@ -79,15 +62,20 @@ public partial class BindingEditWindow : Window
         UpdateFieldsVisibility(currentTarget);
     }
 
+    private ActionTypeDescriptor? FindDescriptor(string type) => _descriptors.FirstOrDefault(d => d.Id == type);
+
     private void UpdateFieldsVisibility(string currentTarget)
     {
         var type = _typeBox.SelectedItem as string ?? "none";
+        var descriptor = FindDescriptor(type);
+        var target = descriptor?.Target ?? TargetKind.None;
 
         _stepPanel.IsVisible = _mode == BindingEditMode.Encoder;
-        _methodPanel.IsVisible = type == "http";
+        _methodPanel.IsVisible = descriptor?.SupportsHttpMethod ?? false;
 
-        if (type == "switch-page")
+        if (target == TargetKind.PageCombo)
         {
+            _targetComboBox.ItemTemplate = null;
             _targetComboBox.ItemsSource = _pageNames;
             _targetComboBox.SelectedItem = _pageNames.Contains(currentTarget)
                 ? currentTarget
@@ -96,26 +84,27 @@ public partial class BindingEditWindow : Window
             _targetComboPanel.IsVisible = true;
             _targetTextPanel.IsVisible = false;
         }
-        else if (ChannelBasedTypes.Contains(type))
+        else if (target == TargetKind.ChannelCombo && descriptor?.ComboOptions is { } options)
         {
-            _targetComboBox.ItemsSource = SonarChannels.All;
-            _targetComboBox.SelectedItem = SonarChannels.All.Contains(currentTarget)
+            _targetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
+                (value, _) => new TextBlock { Text = descriptor.ComboDisplayName?.Invoke(value) ?? value });
+            _targetComboBox.ItemsSource = options;
+            _targetComboBox.SelectedItem = options.Contains(currentTarget)
                 ? currentTarget
-                : SonarChannels.All.FirstOrDefault();
+                : options.FirstOrDefault();
 
             _targetComboPanel.IsVisible = true;
             _targetTextPanel.IsVisible = false;
         }
-        else if (type is "none" or "discord-toggle-mute" or "discord-toggle-deafen"
-                 or "sonar-cycle-output" or "sonar-cycle-mic")
+        else if (target == TargetKind.FreeText)
         {
             _targetComboPanel.IsVisible = false;
-            _targetTextPanel.IsVisible = false;
+            _targetTextPanel.IsVisible = true;
         }
         else
         {
             _targetComboPanel.IsVisible = false;
-            _targetTextPanel.IsVisible = true;
+            _targetTextPanel.IsVisible = false;
         }
     }
 
