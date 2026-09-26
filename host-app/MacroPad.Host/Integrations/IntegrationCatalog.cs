@@ -14,5 +14,6 @@ public static class IntegrationCatalog
         new CoreIntegration(),
         new SonarIntegration(),
         new DiscordIntegration(config.DiscordClientId, config.DiscordClientSecret),
+        new SoundboardIntegration(),
     };
 }
