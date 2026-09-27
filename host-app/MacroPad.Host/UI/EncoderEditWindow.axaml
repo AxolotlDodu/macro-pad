@@ -33,12 +33,17 @@
                 <TextBlock Text="CLIC (appui sur l'encodeur)" Classes="section"/>
 
                 <StackPanel Spacing="4">
-                    <TextBlock Text="TYPE D'ACTION" Classes="label"/>
+                    <TextBlock Text="INTÉGRATION" Classes="label"/>
+                    <ComboBox x:Name="ClickIntegrationBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+
+                <StackPanel x:Name="ClickActionPanel" Spacing="4">
+                    <TextBlock Text="ACTION" Classes="label"/>
                     <ComboBox x:Name="ClickTypeBox" HorizontalAlignment="Stretch"/>
                 </StackPanel>
 
                 <StackPanel x:Name="ClickTargetTextPanel" Spacing="4">
-                    <TextBlock Text="CIBLE" Classes="label"/>
+                    <TextBlock x:Name="ClickTargetTextLabel" Text="CIBLE" Classes="label"/>
                     <TextBox x:Name="ClickTargetTextBox"/>
                 </StackPanel>
 
@@ -65,7 +70,12 @@
                 <TextBlock Text="ROTATION" Classes="section"/>
 
                 <StackPanel Spacing="4">
-                    <TextBlock Text="TYPE D'ACTION" Classes="label"/>
+                    <TextBlock Text="INTÉGRATION" Classes="label"/>
+                    <ComboBox x:Name="RotationIntegrationBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+
+                <StackPanel x:Name="RotationActionPanel" Spacing="4">
+                    <TextBlock Text="ACTION" Classes="label"/>
                     <ComboBox x:Name="RotationTypeBox" HorizontalAlignment="Stretch"/>
                 </StackPanel>
 

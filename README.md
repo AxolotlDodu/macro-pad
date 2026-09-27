@@ -1,4 +1,4 @@
-Projet du macro pad.
+# Macro Pad
 
 ### Pour Sonar :
 Nom des channels :
@@ -18,7 +18,7 @@ Fontions implémentées :
 
 On peut avoir toutes les inputs/outputs ici :
 
-- http://127.0.0.1:64409/audioDevices
+- http://127.0.0.1:xxxxx/audioDevices
 
 ### Pour discord :
 

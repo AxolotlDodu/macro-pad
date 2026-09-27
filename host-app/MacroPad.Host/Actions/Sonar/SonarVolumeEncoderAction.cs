@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Net.Http;
 
@@ -23,47 +22,48 @@ public class SonarVolumeEncoderAction : IEncoderAction
 
     public async void Execute(int ticks)
     {
-        // 1. Récupération du volume actuel depuis le cache
-        double currentVolume = await SonarVolumeState.GetOrFetchAsync(Client, _sonarAddress, _channel);
+        var streamerMode = await SonarStreamerMode.IsActiveAsync(Client, _sonarAddress);
+        var sliders = streamerMode
+            ? SonarStreamerMode.VolumeSlidersFor(_channel).Cast<string?>().ToArray()
+            : new string?[] { null };
 
-        // 2. Calcul du nouveau volume
-        double newVolume = Math.Clamp(currentVolume + (ticks * _step), 0.0, 1.0);
+        double lastApplied = 0;
+        bool anySuccess = false;
 
-        // Debug : Affichage du calcul local dans la console
-        Console.WriteLine($"[SonarVolume] Canal: {_channel} | Ticks: {ticks} | Volume précédent: {currentVolume:P0} -> Nouveau volume: {newVolume:P0}");
-
-        // 3. Formatage de la valeur en notation anglo-saxonne (point décimal)
-        string volumeString = newVolume.ToString("0.00", CultureInfo.InvariantCulture);
-
-        // 4. Construction de l'URL et envoi de la requête PUT
-        string url = $"http://{_sonarAddress}/volumeSettings/classic/{_channel}/Volume/{volumeString}";
-
-        try
+        foreach (var slider in sliders)
         {
-            var response = await Client.PutAsync(url, null);
+            double currentVolume = await SonarVolumeState.GetOrFetchAsync(Client, _sonarAddress, _channel, slider);
+            double newVolume = Math.Clamp(currentVolume + (ticks * _step), 0.0, 1.0);
+            string volumeString = newVolume.ToString("0.00", CultureInfo.InvariantCulture);
 
-            // Debug : Affichage de la réponse HTTP de Sonar
-            if (response.IsSuccessStatusCode)
+            string url = slider is null
+                ? $"http://{_sonarAddress}/volumeSettings/classic/{_channel}/Volume/{volumeString}"
+                : $"http://{_sonarAddress}/volumeSettings/streamer/{slider}/{_channel}/Volume/{volumeString}";
+
+            try
             {
-                SonarVolumeState.Set(_channel, newVolume);
-                var percent = (int)Math.Round(newVolume * 100);
-                _notifier?.ShowNotification($"{SonarChannels.GetDisplayName(_channel)}: {percent}%");
-                Console.WriteLine($"[SonarVolume] OK ({response.StatusCode}) -> URL appelée : {url}");
+                var response = await Client.PutAsync(url, null);
+                if (response.IsSuccessStatusCode)
+                {
+                    SonarVolumeState.Set(_channel, newVolume, slider);
+                    lastApplied = newVolume;
+                    anySuccess = true;
+                    Console.WriteLine($"[SonarVolume] {_channel}{(slider is null ? "" : $"/{slider}")} -> {newVolume:P0} (OK)");
+                }
+                else
+                {
+                    Console.WriteLine($"[SonarVolume] ERREUR ({response.StatusCode}) : {url}");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine($"[SonarVolume] ERREUR ({response.StatusCode}) lors de l'appel : {url}");
+                Console.WriteLine($"[SonarVolume] EXCEPTION ({_channel}) : {ex.Message}");
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[SonarVolume] EXCEPTION ({_channel}) : {ex.Message}");
-        }
+
+        if (anySuccess)
+            _notifier?.ShowNotification($"{SonarChannels.GetDisplayName(_channel)}: {(int)Math.Round(lastApplied * 100)}%");
     }
 
-    private static HttpClient CreateClient()
-    {
-        // Remplace par ta méthode d'instanciation de HttpClient existante dans le projet
-        return new HttpClient();
-    }
+    private static HttpClient CreateClient() => new();
 }

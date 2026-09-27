@@ -17,18 +17,18 @@ public class SonarIntegration : IIntegration
 
     public IReadOnlyList<ActionTypeDescriptor> ButtonActionTypes { get; } = new List<ActionTypeDescriptor>
     {
-        new() { Id = "sonar-toggle-mute", Label = "Sonar : Mute/Unmute channel", Target = TargetKind.ChannelCombo,
-                ComboOptions = SonarChannels.All, ComboDisplayName = SonarChannels.GetDisplayName },
-        new() { Id = "sonar-set-output", Label = "Sonar : Définir la sortie", Target = TargetKind.FreeText },
-        new() { Id = "sonar-set-mic", Label = "Sonar : Définir le micro", Target = TargetKind.FreeText },
-        new() { Id = "sonar-cycle-output", Label = "Sonar : Cycler la sortie", Target = TargetKind.None },
-        new() { Id = "sonar-cycle-mic", Label = "Sonar : Cycler le micro", Target = TargetKind.None },
+        new() { Id = "sonar-toggle-mute", Label = "Mute/Unmute channel", Target = TargetKind.ChannelCombo,
+                ComboOptions = SonarChannels.All, ComboDisplayName = SonarChannels.GetDisplayName, IntegrationKey = "sonar" },
+        new() { Id = "sonar-set-output", Label = "Définir la sortie", Target = TargetKind.FreeText, IntegrationKey = "sonar" },
+        new() { Id = "sonar-set-mic", Label = "Définir le micro", Target = TargetKind.FreeText, IntegrationKey = "sonar" },
+        new() { Id = "sonar-cycle-output", Label = "Cycler la sortie", Target = TargetKind.DeviceExcludeList, IntegrationKey = "sonar" },
+        new() { Id = "sonar-cycle-mic", Label = "Cycler le micro", Target = TargetKind.DeviceExcludeList, IntegrationKey = "sonar" },
     };
 
     public IReadOnlyList<ActionTypeDescriptor> EncoderActionTypes { get; } = new List<ActionTypeDescriptor>
     {
-        new() { Id = "sonar-volume", Label = "Sonar : Volume channel", Target = TargetKind.ChannelCombo,
-                ComboOptions = SonarChannels.All, ComboDisplayName = SonarChannels.GetDisplayName },
+        new() { Id = "sonar-volume", Label = "Volume channel", Target = TargetKind.ChannelCombo,
+                ComboOptions = SonarChannels.All, ComboDisplayName = SonarChannels.GetDisplayName, IntegrationKey = "sonar" },
     };
 
     public IAction? CreateAction(string type, BindingConfig config, IntegrationContext context)
@@ -39,8 +39,8 @@ public class SonarIntegration : IIntegration
             "sonar-toggle-mute" => new SonarToggleMuteAction(Address, config.Target, context.Notifier),
             "sonar-set-output" => new SonarSetDeviceAction(Address, "render", config.Target, context.Notifier),
             "sonar-set-mic" => new SonarSetDeviceAction(Address, "mic", config.Target, context.Notifier),
-            "sonar-cycle-output" => new SonarCycleDeviceAction(Address, "render", config.Devices, context.Notifier),
-            "sonar-cycle-mic" => new SonarCycleDeviceAction(Address, "mic", config.Devices, context.Notifier),
+            "sonar-cycle-output" => new SonarCycleDeviceAction(Address, "render", config.Devices, config.ExcludedDevices, context.Notifier),
+            "sonar-cycle-mic" => new SonarCycleDeviceAction(Address, "mic", config.Devices, config.ExcludedDevices, context.Notifier),
             _ => null
         };
     }

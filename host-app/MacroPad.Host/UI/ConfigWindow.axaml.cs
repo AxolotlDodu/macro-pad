@@ -28,8 +28,9 @@ public partial class ConfigWindow : Window
     private Border _twelveKeyLayout = null!;
     private ComboBox _pageSwitchBox = null!;
 
-    private readonly IReadOnlyList<ActionTypeDescriptor> _buttonActionTypes;
-    private readonly IReadOnlyList<ActionTypeDescriptor> _encoderActionTypes;
+    private readonly IReadOnlyList<IIntegration> _integrations;
+    private IReadOnlyList<ActionTypeDescriptor> _buttonActionTypes;
+    private IReadOnlyList<ActionTypeDescriptor> _encoderActionTypes;
     private static readonly Avalonia.Media.IBrush ReservedBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#F9E2AF"));
 
     private static readonly Avalonia.Media.IBrush AssignedBrush = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#89B4FA"));
@@ -43,9 +44,9 @@ public partial class ConfigWindow : Window
         _configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
         _config = Config.Load(_configPath);
 
-        var integrations = IntegrationCatalog.CreateAll(_config);
-        _buttonActionTypes = integrations.SelectMany(i => i.ButtonActionTypes).ToList();
-        _encoderActionTypes = integrations.SelectMany(i => i.EncoderActionTypes).ToList();
+        _integrations = IntegrationCatalog.CreateAll(_config);
+        _buttonActionTypes = _integrations.SelectMany(i => i.ButtonActionTypes).ToList();
+        _encoderActionTypes = _integrations.SelectMany(i => i.EncoderActionTypes).ToList();
 
         _pages = new ObservableCollection<PageConfig>(_config.Pages);
 
@@ -53,7 +54,6 @@ public partial class ConfigWindow : Window
         _pageNameBox = this.FindControl<TextBox>("PageNameBox")!;
         _appMatchersBox = this.FindControl<TextBox>("AppMatchersBox")!;
 
-        // bit -> numéro affiché sur la touche (bit 0 = touche 1, ..., bit 8 = touche 9)
         _bitButtons[0] = this.FindControl<Button>("Bit0")!;
         _bitButtons[1] = this.FindControl<Button>("Bit1")!;
         _bitButtons[2] = this.FindControl<Button>("Bit2")!;
@@ -88,7 +88,7 @@ public partial class ConfigWindow : Window
         _pageSwitchBox.SelectedItem = (_config.PageSwitchBit + 1).ToString();
         _pageSwitchBox.SelectionChanged += (_, _) =>
         {
-            if (_config.Profile != PadProfile.TwelveKeyNoScreen) return; // bit 9 fixe en 10 touches, non modifiable ici
+            if (_config.Profile != PadProfile.TwelveKeyNoScreen) return;
 
             if (int.TryParse(_pageSwitchBox.SelectedItem as string, out var n))
                 _config.PageSwitchBit = n - 1;
@@ -101,6 +101,15 @@ public partial class ConfigWindow : Window
         ApplyProfileLayout();
 
         _pageListBox.SelectedIndex = 0;
+    }
+
+    /// <summary>Recharge les sons disponibles (sounds.json) et reconstruit les listes
+    /// d'actions, pour que l'éditeur de touche/encodeur affiche toujours la liste à jour.</summary>
+    private void RefreshActionTypes()
+    {
+        _integrations.OfType<SoundboardIntegration>().FirstOrDefault()?.RefreshSounds();
+        _buttonActionTypes = _integrations.SelectMany(i => i.ButtonActionTypes).ToList();
+        _encoderActionTypes = _integrations.SelectMany(i => i.EncoderActionTypes).ToList();
     }
 
     private void OnPageSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -176,7 +185,7 @@ public partial class ConfigWindow : Window
         _config.PageSwitchBit = _config.Profile == PadProfile.TenKeyScreen ? 9 : 11;
         _config.Save(_configPath);
 
-        _pageSwitchBox.SelectedItem = (_config.PageSwitchBit + 1).ToString(); // resynchronise l'affichage même si masqué
+        _pageSwitchBox.SelectedItem = (_config.PageSwitchBit + 1).ToString();
 
         ApplyProfileLayout();
         Console.WriteLine($"[ConfigWindow] Profil changé -> {_config.Profile}.");
@@ -202,7 +211,9 @@ public partial class ConfigWindow : Window
     {
         if (_currentPage is null || sender is not Button btn) return;
         var bit = int.Parse((string)btn.Tag!);
-        if (bit == _config.PageSwitchBit) return; // touche réservée, non éditable
+        if (bit == _config.PageSwitchBit) return;
+
+        RefreshActionTypes();
 
         _currentPage.Bindings.TryGetValue(bit.ToString(), out var existing);
 
@@ -213,6 +224,7 @@ public partial class ConfigWindow : Window
             existing?.Target ?? "",
             existing?.Method ?? "GET",
             0,
+            existing?.ExcludedDevices ?? new List<string>(),
             _pages.Select(p => p.Name).ToList(),
             _buttonActionTypes);
 
@@ -226,7 +238,8 @@ public partial class ConfigWindow : Window
             {
                 Type = dlg.ResultType,
                 Target = dlg.ResultTarget,
-                Method = dlg.ResultMethod
+                Method = dlg.ResultMethod,
+                ExcludedDevices = dlg.ResultExcludedDevices.Count > 0 ? dlg.ResultExcludedDevices : null
             };
 
         RefreshPadButtons(_currentPage);
@@ -235,8 +248,10 @@ public partial class ConfigWindow : Window
     private async void OnEncoderButtonClick(object? sender, RoutedEventArgs e)
     {
         if (_currentPage is null || sender is not Button btn) return;
-        var idx = (string)btn.Tag!; // "1" ou "2"
+        var idx = (string)btn.Tag!;
         var clickBit = idx == "1" ? "10" : "11";
+
+        RefreshActionTypes();
 
         _currentPage.Bindings.TryGetValue(clickBit, out var existingClick);
         _currentPage.Encoders.TryGetValue(idx, out var existingRotation);
@@ -246,6 +261,7 @@ public partial class ConfigWindow : Window
             existingClick?.Type ?? "none",
             existingClick?.Target ?? "",
             existingClick?.Method ?? "GET",
+            existingClick?.ExcludedDevices ?? new List<string>(),
             existingRotation?.Type ?? "none",
             existingRotation?.Target ?? "",
             existingRotation?.Step ?? 0.05,
@@ -263,7 +279,8 @@ public partial class ConfigWindow : Window
             {
                 Type = dlg.ClickType,
                 Target = dlg.ClickTarget,
-                Method = dlg.ClickMethod
+                Method = dlg.ClickMethod,
+                ExcludedDevices = dlg.ClickExcludedDevices.Count > 0 ? dlg.ClickExcludedDevices : null
             };
 
         if (dlg.RotationType == "none")

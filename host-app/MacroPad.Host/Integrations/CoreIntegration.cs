@@ -10,11 +10,11 @@ public class CoreIntegration : IIntegration
 
     public IReadOnlyList<ActionTypeDescriptor> ButtonActionTypes { get; } = new List<ActionTypeDescriptor>
     {
-        new() { Id = "launch", Label = "Lancer un programme", Target = TargetKind.FreeText },
-        new() { Id = "url", Label = "Ouvrir une URL", Target = TargetKind.FreeText },
-        new() { Id = "keystroke", Label = "Raccourci clavier", Target = TargetKind.FreeText },
-        new() { Id = "http", Label = "Requête HTTP", Target = TargetKind.FreeText, SupportsHttpMethod = true },
-        new() { Id = "switch-page", Label = "Changer de page", Target = TargetKind.PageCombo },
+        new() { Id = "launch", Label = "Lancer un programme", Target = TargetKind.FreeText, IntegrationKey = "core" },
+        new() { Id = "url", Label = "Ouvrir une URL", Target = TargetKind.FreeText, IntegrationKey = "core" },
+        new() { Id = "keystroke", Label = "Raccourci clavier", Target = TargetKind.FreeText, IntegrationKey = "core" },
+        new() { Id = "http", Label = "Requête HTTP", Target = TargetKind.FreeText, SupportsHttpMethod = true, IntegrationKey = "core" },
+        new() { Id = "switch-page", Label = "Changer de page", Target = TargetKind.PageCombo, IntegrationKey = "core" },
     };
 
     public IReadOnlyList<ActionTypeDescriptor> EncoderActionTypes { get; } = Array.Empty<ActionTypeDescriptor>();

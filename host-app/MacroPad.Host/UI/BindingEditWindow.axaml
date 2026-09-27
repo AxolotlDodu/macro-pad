@@ -18,12 +18,17 @@
         <TextBlock x:Name="HeaderText" FontSize="16" FontWeight="Bold" Foreground="#CDD6F4"/>
 
         <StackPanel Spacing="4">
-            <TextBlock Text="TYPE D'ACTION" Classes="label"/>
+            <TextBlock Text="INTÉGRATION" Classes="label"/>
+            <ComboBox x:Name="IntegrationBox" HorizontalAlignment="Stretch"/>
+        </StackPanel>
+
+        <StackPanel x:Name="ActionPanel" Spacing="4">
+            <TextBlock Text="ACTION" Classes="label"/>
             <ComboBox x:Name="TypeBox" HorizontalAlignment="Stretch"/>
         </StackPanel>
 
         <StackPanel x:Name="TargetTextPanel" Spacing="4">
-            <TextBlock Text="CIBLE" Classes="label"/>
+            <TextBlock x:Name="TargetTextLabel" Text="CIBLE" Classes="label"/>
             <TextBox x:Name="TargetTextBox"/>
         </StackPanel>
 

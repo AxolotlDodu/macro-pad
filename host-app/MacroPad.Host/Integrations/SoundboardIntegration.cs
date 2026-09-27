@@ -6,14 +6,15 @@ namespace MacroPad.Host.Integrations;
 public class SoundboardIntegration : IIntegration
 {
     public string Key => "soundboard";
-    public bool IsAvailable => true; // échec silencieux géré par SoundboardClient si l'app n'est pas lancée
+    public bool IsAvailable => true;
 
     private readonly SoundboardClient _client;
+    private readonly string _soundsPath;
 
-    public IReadOnlyList<ActionTypeDescriptor> ButtonActionTypes { get; }
+    public IReadOnlyList<ActionTypeDescriptor> ButtonActionTypes { get; private set; }
     public IReadOnlyList<ActionTypeDescriptor> EncoderActionTypes { get; } = new List<ActionTypeDescriptor>
     {
-        new() { Id = "soundboard-volume", Label = "Soundboard : Volume", Target = TargetKind.None },
+        new() { Id = "soundboard-volume", Label = "Volume", Target = TargetKind.None, IntegrationKey = "soundboard" },
     };
 
     public SoundboardIntegration()
@@ -22,18 +23,36 @@ public class SoundboardIntegration : IIntegration
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Soundboard");
 
         _client = new SoundboardClient(Path.Combine(soundboardDir, "port.txt"));
-        var sounds = LoadSounds(Path.Combine(soundboardDir, "sounds.json"));
+        _soundsPath = Path.Combine(soundboardDir, "sounds.json");
 
-        ButtonActionTypes = new List<ActionTypeDescriptor>
+        ButtonActionTypes = BuildButtonActionTypes();
+    }
+
+    /// <summary>Relit sounds.json. Appelé par ConfigWindow avant chaque ouverture d'un éditeur
+    /// de touche/encodeur pour que la liste des sons proposée soit toujours à jour.</summary>
+    public void RefreshSounds() => ButtonActionTypes = BuildButtonActionTypes();
+
+    private List<ActionTypeDescriptor> BuildButtonActionTypes()
+    {
+        var sounds = LoadSounds(_soundsPath);
+        return new List<ActionTypeDescriptor>
         {
             new()
             {
                 Id = "soundboard-play",
-                Label = "Soundboard : Jouer un son",
+                Label = "Jouer un son",
                 Target = TargetKind.ChannelCombo,
                 ComboOptions = sounds.Keys.ToList(),
-                ComboDisplayName = id => id is null ? "" : sounds.GetValueOrDefault(id, id)
-            }
+                ComboDisplayName = id => id is null ? "" : sounds.GetValueOrDefault(id, id),
+                IntegrationKey = "soundboard"
+            },
+            new()
+            {
+                Id = "soundboard-toggle-mute",
+                Label = "Mute/Unmute",
+                Target = TargetKind.None,
+                IntegrationKey = "soundboard"
+            },
         };
     }
 
@@ -42,6 +61,7 @@ public class SoundboardIntegration : IIntegration
     public IAction? CreateAction(string type, BindingConfig config, IntegrationContext context) => type switch
     {
         "soundboard-play" => new SoundboardPlayAction(_client, config.Target),
+        "soundboard-toggle-mute" => new SoundboardMuteToggleAction(_client, context.Notifier),
         _ => null
     };
 

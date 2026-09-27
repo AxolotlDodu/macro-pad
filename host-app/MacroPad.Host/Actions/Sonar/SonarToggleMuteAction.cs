@@ -20,34 +20,59 @@ public class SonarToggleMuteAction : IAction
         _notifier = notifier;
     }
 
-    public void Execute()
-    {
-        _ = ToggleAsync();
-    }
+    public void Execute() => _ = ToggleAsync();
 
     private async Task ToggleAsync()
     {
         try
         {
-            // Première pression : on part du principe qu'on est démuté, donc on mute.
-            // Ensuite, on se base sur l'état réel renvoyé par Sonar à chaque appel.
             var desiredMuted = !(_lastKnownMuted ?? false);
+            var streamerMode = await SonarStreamerMode.IsActiveAsync(Client, _address);
+            bool actualMuted = desiredMuted;
 
-            var url = $"http://{_address}/volumeSettings/classic/{_channel}/Mute/{(desiredMuted ? "true" : "false")}";
-            var response = await Client.PutAsync(url, new StringContent(""));
-            var body = await response.Content.ReadAsStringAsync();
+            if (!streamerMode)
+            {
+                var url = $"http://{_address}/volumeSettings/classic/{_channel}/Mute/{(desiredMuted ? "true" : "false")}";
+                var response = await Client.PutAsync(url, new StringContent(""));
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[SonarToggleMute] ERREUR ({response.StatusCode}) : {url}");
+                    return; // on ne fige pas l'état si la requête a échoué
+                }
+                var body = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(body);
+                actualMuted = doc.RootElement.GetProperty("devices").GetProperty(_channel)
+                    .GetProperty("classic").GetProperty("muted").GetBoolean();
+            }
+            else
+            {
+                bool allOk = true;
 
-            using var doc = JsonDocument.Parse(body);
-            var actualMuted = doc.RootElement
-                .GetProperty("devices")
-                .GetProperty(_channel)
-                .GetProperty("classic")
-                .GetProperty("muted")
-                .GetBoolean();
+                // Game/Chat/Media/Aux : uniquement monitoring (sortie PC).
+                // Micro (chatCapture) : monitoring ET streaming.
+                foreach (var slider in SonarStreamerMode.VolumeSlidersFor(_channel))
+                {
+                    var url = $"http://{_address}/volumeSettings/streamer/{slider}/{_channel}/isMuted/{(desiredMuted ? "true" : "false")}";
+                    var response = await Client.PutAsync(url, new StringContent(""));
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"[SonarToggleMute] {_channel}/{slider} -> muted={desiredMuted} OK");
+                    }
+                    else
+                    {
+                        allOk = false;
+                        var body = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"[SonarToggleMute] ERREUR ({response.StatusCode}) sur {url} : {body}");
+                    }
+                }
+
+                if (!allOk) return; // état non figé -> le prochain appui retentera dans le même sens
+            }
 
             _lastKnownMuted = actualMuted;
             _notifier?.ShowNotification($"{SonarChannels.GetDisplayName(_channel)}: {(actualMuted ? "Mute" : "Actif")}");
-            Console.WriteLine($"[SonarToggleMute] {_channel} -> muted={actualMuted}");
+            Console.WriteLine($"[SonarToggleMute] {_channel} -> muted={actualMuted} (streamer={streamerMode})");
         }
         catch (Exception ex)
         {
@@ -57,10 +82,7 @@ public class SonarToggleMuteAction : IAction
 
     private static HttpClient CreateClient()
     {
-        var handler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true
-        };
+        var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
         return new HttpClient(handler);
     }
 }

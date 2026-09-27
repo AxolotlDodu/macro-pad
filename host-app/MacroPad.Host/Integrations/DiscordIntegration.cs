@@ -28,8 +28,8 @@ public class DiscordIntegration : IIntegration
 
     public IReadOnlyList<ActionTypeDescriptor> ButtonActionTypes { get; } = new List<ActionTypeDescriptor>
     {
-        new() { Id = "discord-toggle-mute", Label = "Discord : Mute/Unmute", Target = TargetKind.None },
-        new() { Id = "discord-toggle-deafen", Label = "Discord : Deafen", Target = TargetKind.None },
+        new() { Id = "discord-toggle-mute", Label = "Mute/Unmute", Target = TargetKind.None, IntegrationKey = "discord" },
+        new() { Id = "discord-toggle-deafen", Label = "Deafen", Target = TargetKind.None, IntegrationKey = "discord" },
     };
 
     public IReadOnlyList<ActionTypeDescriptor> EncoderActionTypes { get; } = Array.Empty<ActionTypeDescriptor>();

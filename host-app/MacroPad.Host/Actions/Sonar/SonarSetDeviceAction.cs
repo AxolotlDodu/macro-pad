@@ -2,12 +2,6 @@ using System.Net.Http;
 
 namespace MacroPad.Host;
 
-/// <summary>
-/// Change le périphérique physique de sortie ("render") ou d'entrée ("mic") dans Sonar.
-/// Contrairement aux canaux de mixage (game/chat/media/aux), il n'y a qu'une seule
-/// sortie physique et une seule entrée physique en mode classic — pas besoin de
-/// boucler sur plusieurs canaux.
-/// </summary>
 public class SonarSetDeviceAction : IAction
 {
     private static readonly HttpClient Client = CreateClient();
@@ -30,22 +24,27 @@ public class SonarSetDeviceAction : IAction
 
     private async Task ApplyAsync()
     {
-        var encodedId = Uri.EscapeDataString(_deviceId);
-        var url = $"http://{_address}/classicRedirections/{_channel}/deviceId/{encodedId}";
+        var streamerMode = await SonarStreamerMode.IsActiveAsync(Client, _address);
+        var basePath = SonarStreamerMode.RedirectionBasePath(streamerMode);
+        // La sortie stream (mix "streaming") n'est jamais ciblée : uniquement la sortie PC.
+        var redirectionChannel = _channel == "mic" ? "mic" : SonarStreamerMode.RenderRedirectionKey(streamerMode);
 
-    try
-    {
-        var response = await Client.PutAsync(url, new StringContent(""));
-        if (response.IsSuccessStatusCode)
+        var encodedId = Uri.EscapeDataString(_deviceId);
+        var url = $"http://{_address}/{basePath}/{redirectionChannel}/deviceId/{encodedId}";
+
+        try
         {
-            Console.WriteLine($"[SonarDevice] {_channel} -> {_deviceId} OK");
-            await NotifyAsync();
+            var response = await Client.PutAsync(url, new StringContent(""));
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[SonarDevice] {redirectionChannel} -> {_deviceId} OK (streamer={streamerMode})");
+                await NotifyAsync();
+            }
+            else
+            {
+                Console.WriteLine($"[SonarDevice] {redirectionChannel} -> ERREUR ({response.StatusCode}) : {url}");
+            }
         }
-        else
-        {
-            Console.WriteLine($"[SonarDevice] {_channel} -> ERREUR ({response.StatusCode}) : {url}");
-        }
-    }
         catch (Exception ex)
         {
             Console.WriteLine($"[SonarDevice] EXCEPTION ({_channel}) : {ex.Message}");
@@ -54,10 +53,7 @@ public class SonarSetDeviceAction : IAction
 
     private static HttpClient CreateClient()
     {
-        var handler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true
-        };
+        var handler = new HttpClientHandler { ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true };
         return new HttpClient(handler);
     }
 

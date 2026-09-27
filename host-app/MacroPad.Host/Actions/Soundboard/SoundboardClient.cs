@@ -31,6 +31,17 @@ public sealed class SoundboardClient
         catch { }
     }
 
+    /// <summary>Fixe le volume général en absolu (0 à 100) — utilisé par le mute/unmute,
+    /// qui met le volume à 0 puis restaure la valeur précédente.</summary>
+    public async Task SetVolumeAsync(int percent)
+    {
+        var port = ReadCurrentPort();
+        if (port is null) return;
+
+        try { await _http.PostAsync($"http://127.0.0.1:{port}/volume/{percent}", content: null); }
+        catch { }
+    }
+
     public async Task<double?> GetVolumeAsync()
     {
         var port = ReadCurrentPort();
