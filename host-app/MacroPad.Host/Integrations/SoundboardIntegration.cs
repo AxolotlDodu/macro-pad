@@ -11,7 +11,10 @@ public class SoundboardIntegration : IIntegration
     private readonly SoundboardClient _client;
 
     public IReadOnlyList<ActionTypeDescriptor> ButtonActionTypes { get; }
-    public IReadOnlyList<ActionTypeDescriptor> EncoderActionTypes { get; } = Array.Empty<ActionTypeDescriptor>();
+    public IReadOnlyList<ActionTypeDescriptor> EncoderActionTypes { get; } = new List<ActionTypeDescriptor>
+    {
+        new() { Id = "soundboard-volume", Label = "Soundboard : Volume", Target = TargetKind.None },
+    };
 
     public SoundboardIntegration()
     {
@@ -29,7 +32,7 @@ public class SoundboardIntegration : IIntegration
                 Label = "Soundboard : Jouer un son",
                 Target = TargetKind.ChannelCombo,
                 ComboOptions = sounds.Keys.ToList(),
-                ComboDisplayName = id => sounds.GetValueOrDefault(id, id)
+                ComboDisplayName = id => id is null ? "" : sounds.GetValueOrDefault(id, id)
             }
         };
     }
@@ -42,7 +45,14 @@ public class SoundboardIntegration : IIntegration
         _ => null
     };
 
-    public IEncoderAction? CreateEncoderAction(string type, EncoderConfig config, IntegrationContext context) => null;
+    public IEncoderAction? CreateEncoderAction(string type, EncoderConfig config, IntegrationContext context) => type switch
+    {
+        "soundboard-volume" => new SoundboardVolumeEncoderAction(
+            _client,
+            config.Step > 0 ? (int)Math.Round(config.Step * 100) : 2,
+            context.Notifier),
+        _ => null
+    };
 
     private static Dictionary<string, string> LoadSounds(string path)
     {

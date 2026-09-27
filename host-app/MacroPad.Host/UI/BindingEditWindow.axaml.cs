@@ -87,7 +87,7 @@ public partial class BindingEditWindow : Window
         else if (target == TargetKind.ChannelCombo && descriptor?.ComboOptions is { } options)
         {
             _targetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
-                (value, _) => new TextBlock { Text = descriptor.ComboDisplayName?.Invoke(value) ?? value });
+                (value, _) => new TextBlock { Text = value is null ? "" : (descriptor.ComboDisplayName?.Invoke(value) ?? value) });
             _targetComboBox.ItemsSource = options;
             _targetComboBox.SelectedItem = options.Contains(currentTarget)
                 ? currentTarget

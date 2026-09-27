@@ -102,7 +102,7 @@ public partial class EncoderEditWindow : Window
         else if (target == TargetKind.ChannelCombo && descriptor?.ComboOptions is { } options)
         {
             _clickTargetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
-                (value, _) => new TextBlock { Text = descriptor.ComboDisplayName?.Invoke(value) ?? value });
+                (value, _) => new TextBlock { Text = value is null ? "" : descriptor.ComboDisplayName?.Invoke(value) ?? value });
             _clickTargetComboBox.ItemsSource = options;
             _clickTargetComboBox.SelectedItem = options.Contains(currentTarget)
                 ? currentTarget
@@ -132,7 +132,7 @@ public partial class EncoderEditWindow : Window
         if (target == TargetKind.ChannelCombo && descriptor?.ComboOptions is { } options)
         {
             _rotationTargetComboBox.ItemTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<string>(
-                (value, _) => new TextBlock { Text = descriptor.ComboDisplayName?.Invoke(value) ?? value });
+                (value, _) => new TextBlock { Text = value is null ? "" : descriptor.ComboDisplayName?.Invoke(value) ?? value });
             _rotationTargetComboBox.ItemsSource = options;
             _rotationTargetComboBox.SelectedItem = options.Contains(currentTarget)
                 ? currentTarget
