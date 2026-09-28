@@ -1,27 +1,40 @@
-# Macro Pad
+# MacroPad
 
-### Pour Sonar :
-Nom des channels :
+Macro pad DIY (ATmega32U4) et son application hôte Windows (.NET / Avalonia).
 
- - Master = master
- - Game = game
- - Chat = chatRender
- - Média = media
- - Aux = aux
- - Micro = chatCapture
+## Versions du pad
 
-Fontions implémentées :
+- **v2** : 10 touches + écran OLED + 2 encodeurs
+- **v1** : 12 touches, sans écran
 
-- Volume +/- channels
-- Mute/Unmute channels
-- Change device (input/output)
+## Fonctionnalités
 
-On peut avoir toutes les inputs/outputs ici :
+- Pages de configuration avec bascule manuelle ou automatique selon l'application au premier plan
+- Actions : raccourci clavier, lancer un programme, ouvrir une URL, requête HTTP, changer de page
+- **Sonar (SteelSeries)** : volume et mute des channels, changement de sortie/micro
+  (channels : master, game, chatRender, media, aux, chatCapture)
+- **Discord** : mute, deafen
+- **Soundboard** : jouer un son, mute, tout arrêter, volume
+- Rechargement à chaud de `config.json`
 
-- http://127.0.0.1:xxxxx/audioDevices
+## Structure
 
-### Pour discord :
+- `firmware/` : firmware Arduino
+- `host-app/MacroPad.Host/` : application hôte
+- `installer/` : script Inno Setup
 
-Fonctions implémentées :
- - mute
- - deafen
+## Compilation
+
+    dotnet publish -c Release -r win-x64
+
+Puis compiler `installer/MacroPad-Setup.iss` avec Inno Setup.
+
+## Configuration
+
+- `config.json` : pages et assignations (modifiable via la fenêtre de configuration)
+- `secrets.json` : identifiants Discord (jamais versionné)
+
+    {
+      "discordClientId": "...",
+      "discordClientSecret": "..."
+    }

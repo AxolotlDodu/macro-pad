@@ -53,6 +53,13 @@ public class SoundboardIntegration : IIntegration
                 Target = TargetKind.None,
                 IntegrationKey = "soundboard"
             },
+            new()
+            {
+                Id = "soundboard-stop-all",
+                Label = "Soundboard : Tout arrêter",
+                Target = TargetKind.None,
+                IntegrationKey = "soundboard"
+            },
         };
     }
 
@@ -62,6 +69,7 @@ public class SoundboardIntegration : IIntegration
     {
         "soundboard-play" => new SoundboardPlayAction(_client, config.Target),
         "soundboard-toggle-mute" => new SoundboardMuteToggleAction(_client, context.Notifier),
+        "soundboard-stop-all" => new SoundboardStopAllAction(_client),
         _ => null
     };
 

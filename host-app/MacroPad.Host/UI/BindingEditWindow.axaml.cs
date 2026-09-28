@@ -61,7 +61,7 @@ public partial class BindingEditWindow : Window
         _integrationBox.SelectedItem = ActionMenuBuilder.ResolveTopLevel(_topLevelItems, _descriptors, currentType) ?? _topLevelItems[0];
 
         _methodBox.SelectedItem = currentMethod;
-        _stepBox.Text = currentStep.ToString("0.###");
+        _stepBox.Text = currentStep.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
         _integrationBox.SelectionChanged += (_, _) => UpdateGroupSelection(currentType, currentTarget, excludedDevices);
         _typeBox.SelectionChanged += (_, _) => UpdateFieldsVisibility(currentTarget, excludedDevices);
@@ -159,8 +159,7 @@ public partial class BindingEditWindow : Window
 
         ResultMethod = _methodBox.SelectedItem as string ?? "GET";
 
-        if (!double.TryParse(_stepBox.Text, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out var step) || step <= 0)
+        if (!double.TryParse(_stepBox.Text?.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var step) || step <= 0)
             step = 0.05;
         ResultStep = step;
 

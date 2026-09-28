@@ -76,7 +76,7 @@ public partial class EncoderEditWindow : Window
 
         _rotationIntegrationBox.ItemsSource = _rotationTopLevel;
         _rotationIntegrationBox.SelectedItem = ActionMenuBuilder.ResolveTopLevel(_rotationTopLevel, _rotationDescriptors, currentRotationType) ?? _rotationTopLevel[0];
-        _rotationStepBox.Text = currentRotationStep.ToString("0.###");
+        _rotationStepBox.Text = currentRotationStep.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 
         _clickIntegrationBox.SelectionChanged += (_, _) => UpdateClickGroupSelection(currentClickTarget, currentClickExcludedDevices);
         _clickTypeBox.SelectionChanged += (_, _) => UpdateClickFieldsVisibility(currentClickTarget, currentClickExcludedDevices);
@@ -225,8 +225,7 @@ public partial class EncoderEditWindow : Window
         RotationType = rotationDescriptor?.Id ?? "none";
         RotationTarget = _rotationTargetComboPanel.IsVisible ? (_rotationTargetComboBox.SelectedItem as string ?? "") : "";
 
-        if (!double.TryParse(_rotationStepBox.Text, System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out var step) || step <= 0)
+        if (!double.TryParse(_rotationStepBox.Text?.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var step) || step <= 0)
             step = 0.05;
         RotationStep = step;
 

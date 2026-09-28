@@ -22,6 +22,15 @@ public sealed class SoundboardClient
         catch { }
     }
 
+    public async Task StopAllAsync()
+    {
+        var port = ReadCurrentPort();
+        if (port is null) return;
+
+        try { await _http.PostAsync($"http://127.0.0.1:{port}/stop-all", content: null); }
+        catch { }
+    }
+
     public async Task AdjustVolumeAsync(int deltaPercent)
     {
         var port = ReadCurrentPort();
