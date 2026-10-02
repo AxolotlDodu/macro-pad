@@ -1,0 +1,95 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MacroPad.Host.SettingsWindow"
+        Title="Paramètres"
+        Icon="avares://MacroPad.Host/Assets/tray.ico"
+        Width="460" SizeToContent="Height"
+        Background="#1E1E2E"
+        WindowStartupLocation="CenterOwner">
+
+    <Window.Styles>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#6C7086"/>
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#89B4FA"/>
+        </Style>
+        <Style Selector="Border.section">
+            <Setter Property="Background" Value="#181825"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="14"/>
+        </Style>
+    </Window.Styles>
+
+    <StackPanel Margin="20" Spacing="14">
+        <TextBlock Text="Paramètres" FontSize="16" FontWeight="Bold" Foreground="#CDD6F4"/>
+
+        <Border Classes="section">
+            <StackPanel Spacing="10">
+                <TextBlock Text="VERSION DU PAD" Classes="section"/>
+                <TextBlock x:Name="ProfileText" Foreground="#CDD6F4" TextWrapping="Wrap"/>
+                <Button Content="Changer de version de pad" Click="OnChangeProfileClick"
+                        HorizontalAlignment="Stretch" Background="#45475A" Foreground="#CDD6F4" Padding="8"/>
+            </StackPanel>
+        </Border>
+
+        <Border Classes="section">
+            <StackPanel Spacing="10">
+                <TextBlock Text="NOTIFICATIONS" Classes="section"/>
+
+                <StackPanel Spacing="4">
+                    <TextBlock Text="POSITION" Classes="label"/>
+                    <ComboBox x:Name="PositionBox" HorizontalAlignment="Stretch"/>
+                </StackPanel>
+
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                    <StackPanel Grid.Column="0" Grid.Row="0" Spacing="4">
+                        <TextBlock Text="LARGEUR (px)" Classes="label"/>
+                        <TextBox x:Name="WidthBox"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Grid.Row="0" Spacing="4">
+                        <TextBlock Text="HAUTEUR (px)" Classes="label"/>
+                        <TextBox x:Name="HeightBox"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="0" Grid.Row="1" Spacing="4">
+                        <TextBlock Text="MARGE (px)" Classes="label"/>
+                        <TextBox x:Name="MarginBox"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Grid.Row="1" Spacing="4">
+                        <TextBlock Text="DURÉE (ms)" Classes="label"/>
+                        <TextBox x:Name="DurationBox"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="COULEUR DE FOND (#RRGGBB)" Classes="label"/>
+                        <TextBox x:Name="BackgroundBox"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock Text="COULEUR DU TEXTE (#RRGGBB)" Classes="label"/>
+                        <TextBox x:Name="ForegroundBox"/>
+                    </StackPanel>
+                </Grid>
+
+                <Border x:Name="PreviewBorder" CornerRadius="10" Height="48">
+                    <TextBlock x:Name="PreviewText" Text="Aperçu" FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <Button Content="Tester la notification" Click="OnTestClick"
+                        HorizontalAlignment="Stretch" Background="#45475A" Foreground="#CDD6F4" Padding="8"/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Annuler" Click="OnCancelClick" Padding="16,8"
+                    Background="#313244" Foreground="#CDD6F4"/>
+            <Button Content="Valider" Click="OnOkClick" Padding="16,8"
+                    Background="#89B4FA" Foreground="#1E1E2E" FontWeight="Bold"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

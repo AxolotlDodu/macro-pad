@@ -10,7 +10,6 @@ public class HttpAction : IAction
     private readonly HttpMethod _method;
     private readonly string _url;
     private readonly string? _body;
-
     public HttpAction(string method, string url, string? body)
     {
         _method = new HttpMethod(method.ToUpperInvariant());

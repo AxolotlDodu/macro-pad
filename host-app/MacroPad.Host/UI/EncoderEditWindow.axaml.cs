@@ -32,6 +32,8 @@ public partial class EncoderEditWindow : Window
     public string RotationType { get; private set; } = "none";
     public string RotationTarget { get; private set; } = "";
     public double RotationStep { get; private set; } = 0.05;
+    public bool ClickNotifications { get; private set; } = true;
+    public bool RotationNotifications { get; private set; } = true;
 
     public EncoderEditWindow(
         string label,
@@ -39,7 +41,8 @@ public partial class EncoderEditWindow : Window
         string currentRotationType, string currentRotationTarget, double currentRotationStep,
         IReadOnlyList<string> pageNames,
         IReadOnlyList<ActionTypeDescriptor> clickActionTypes,
-        IReadOnlyList<ActionTypeDescriptor> rotationActionTypes)
+        IReadOnlyList<ActionTypeDescriptor> rotationActionTypes,
+        bool currentClickNotifications = true, bool currentRotationNotifications = true)
     {
         _pageNames = pageNames;
         _clickDescriptors = clickActionTypes;
@@ -69,6 +72,8 @@ public partial class EncoderEditWindow : Window
         _rotationStepBox = this.FindControl<TextBox>("RotationStepBox")!;
 
         _headerText.Text = label;
+        this.FindControl<CheckBox>("ClickNotificationsBox")!.IsChecked = currentClickNotifications;
+        this.FindControl<CheckBox>("RotationNotificationsBox")!.IsChecked = currentRotationNotifications;
 
         _clickIntegrationBox.ItemsSource = _clickTopLevel;
         _clickIntegrationBox.SelectedItem = ActionMenuBuilder.ResolveTopLevel(_clickTopLevel, _clickDescriptors, currentClickType) ?? _clickTopLevel[0];
@@ -147,6 +152,7 @@ public partial class EncoderEditWindow : Window
         var target = descriptor?.Target ?? TargetKind.None;
 
         _clickMethodPanel.IsVisible = descriptor?.SupportsHttpMethod ?? false;
+        this.FindControl<CheckBox>("ClickNotificationsBox")!.IsVisible = descriptor?.Id != "http";
 
         if (target == TargetKind.PageCombo)
         {
@@ -228,6 +234,9 @@ public partial class EncoderEditWindow : Window
         if (!double.TryParse(_rotationStepBox.Text?.Replace(',', '.'), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var step) || step <= 0)
             step = 0.05;
         RotationStep = step;
+
+        ClickNotifications = this.FindControl<CheckBox>("ClickNotificationsBox")!.IsChecked == true;
+        RotationNotifications = this.FindControl<CheckBox>("RotationNotificationsBox")!.IsChecked == true;
 
         Confirmed = true;
         Close();

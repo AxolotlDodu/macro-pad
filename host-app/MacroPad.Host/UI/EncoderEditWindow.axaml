@@ -61,6 +61,8 @@
                         <x:String>DELETE</x:String>
                     </ComboBox>
                 </StackPanel>
+
+                <CheckBox x:Name="ClickNotificationsBox" Content="Notifications" IsChecked="True" Foreground="#CDD6F4"/>
             </StackPanel>
         </Border>
 
@@ -88,6 +90,8 @@
                     <TextBlock Text="PAS DE VOLUME (0.0 - 1.0)" Classes="label"/>
                     <TextBox x:Name="RotationStepBox"/>
                 </StackPanel>
+
+                <CheckBox x:Name="RotationNotificationsBox" Content="Notifications" IsChecked="True" Foreground="#CDD6F4"/>
             </StackPanel>
         </Border>
 

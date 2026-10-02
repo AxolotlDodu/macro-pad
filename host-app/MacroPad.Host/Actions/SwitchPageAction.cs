@@ -10,9 +10,11 @@ public class SwitchPageAction : IAction
 {
     private readonly IPageSwitcher _pageSwitcher;
     private readonly string? _targetPage;
+    private readonly IPadNotifier? _notifier;
 
-    public SwitchPageAction(IPageSwitcher pageSwitcher, string? targetPage)
+    public SwitchPageAction(IPageSwitcher pageSwitcher, string? targetPage, IPadNotifier? notifier = null)
     {
+        _notifier = notifier;
         _pageSwitcher = pageSwitcher;
         _targetPage = string.IsNullOrWhiteSpace(targetPage) ? null : targetPage;
     }
@@ -21,5 +23,7 @@ public class SwitchPageAction : IAction
     {
         if (_targetPage is null) _pageSwitcher.CycleNext();
         else _pageSwitcher.SwitchToPage(_targetPage);
+
+        _notifier?.ShowNotification($"Page : {_pageSwitcher.CurrentPageName}");
     }
 }

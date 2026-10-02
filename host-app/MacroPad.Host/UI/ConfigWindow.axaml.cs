@@ -175,20 +175,24 @@ public partial class ConfigWindow : Window
         if (_currentPage is not null) RefreshPadButtons(_currentPage);
     }
 
-    private async void OnChangeProfileClick(object? sender, RoutedEventArgs e)
+    private async void OnSettingsClick(object? sender, RoutedEventArgs e)
     {
-        var dlg = new ProfileSelectWindow(_config.Profile);
+        var dlg = new SettingsWindow(_config);
         await dlg.ShowDialog(this);
-        if (dlg.Result == _config.Profile) return;
+        if (!dlg.Confirmed) return;
 
-        _config.Profile = dlg.Result;
-        _config.PageSwitchBit = _config.Profile == PadProfile.TenKeyScreen ? 9 : 11;
+        _config.Notification = dlg.ResultNotification;
+
+        if (dlg.ResultProfile != _config.Profile)
+        {
+            _config.Profile = dlg.ResultProfile;
+            _config.PageSwitchBit = _config.Profile == PadProfile.TenKeyScreen ? 9 : 11;
+            _pageSwitchBox.SelectedItem = (_config.PageSwitchBit + 1).ToString();
+            ApplyProfileLayout();
+        }
+
         _config.Save(_configPath);
-
-        _pageSwitchBox.SelectedItem = (_config.PageSwitchBit + 1).ToString();
-
-        ApplyProfileLayout();
-        Console.WriteLine($"[ConfigWindow] Profil changé -> {_config.Profile}.");
+        Console.WriteLine("[ConfigWindow] Paramètres enregistrés.");
     }
 
     private static void SetButtonState(Button button, string number, bool assigned)
@@ -226,7 +230,8 @@ public partial class ConfigWindow : Window
             0,
             existing?.ExcludedDevices ?? new List<string>(),
             _pages.Select(p => p.Name).ToList(),
-            _buttonActionTypes);
+            _buttonActionTypes,
+            existing?.Notifications ?? true);
 
         await dlg.ShowDialog(this);
         if (!dlg.Confirmed) return;
@@ -239,7 +244,8 @@ public partial class ConfigWindow : Window
                 Type = dlg.ResultType,
                 Target = dlg.ResultTarget,
                 Method = dlg.ResultMethod,
-                ExcludedDevices = dlg.ResultExcludedDevices.Count > 0 ? dlg.ResultExcludedDevices : null
+                ExcludedDevices = dlg.ResultExcludedDevices.Count > 0 ? dlg.ResultExcludedDevices : null,
+                Notifications = dlg.ResultNotifications
             };
 
         RefreshPadButtons(_currentPage);
@@ -267,7 +273,9 @@ public partial class ConfigWindow : Window
             existingRotation?.Step ?? 0.05,
             _pages.Select(p => p.Name).ToList(),
             _buttonActionTypes,
-            _encoderActionTypes);
+            _encoderActionTypes,
+            existingClick?.Notifications ?? true,
+            existingRotation?.Notifications ?? true);
 
         await dlg.ShowDialog(this);
         if (!dlg.Confirmed) return;
@@ -280,7 +288,8 @@ public partial class ConfigWindow : Window
                 Type = dlg.ClickType,
                 Target = dlg.ClickTarget,
                 Method = dlg.ClickMethod,
-                ExcludedDevices = dlg.ClickExcludedDevices.Count > 0 ? dlg.ClickExcludedDevices : null
+                ExcludedDevices = dlg.ClickExcludedDevices.Count > 0 ? dlg.ClickExcludedDevices : null,
+                Notifications = dlg.ClickNotifications
             };
 
         if (dlg.RotationType == "none")
@@ -290,7 +299,8 @@ public partial class ConfigWindow : Window
             {
                 Type = dlg.RotationType,
                 Target = dlg.RotationTarget,
-                Step = dlg.RotationStep
+                Step = dlg.RotationStep,
+                Notifications = dlg.RotationNotifications
             };
 
         RefreshPadButtons(_currentPage);

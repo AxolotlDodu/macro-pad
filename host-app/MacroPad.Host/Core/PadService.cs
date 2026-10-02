@@ -40,6 +40,8 @@ public class PadService : IPadNotifier
 
     public PadService(CancellationToken token) => _token = token;
 
+    private NotificationSettings _notificationSettings = new();
+
     public async Task RunAsync()
     {
         _configPath = Path.Combine(AppContext.BaseDirectory, "config.json");
@@ -81,11 +83,12 @@ public class PadService : IPadNotifier
     {
         _currentProfile = config.Profile;
         _pageSwitchBit = config.PageSwitchBit;
+        _notificationSettings = config.Notification;
         int maxBit = _currentProfile == PadProfile.TenKeyScreen ? 11 : 11; // les deux exploitent des bits 0-11
 
         var bitActionsByPage = new Dictionary<string, Dictionary<int, IAction>>();
         var encoderActionsByPage = new Dictionary<string, Dictionary<int, IEncoderAction>>();
-        var cycleAction = new SwitchPageAction(_pageSwitcher, null);
+        var cycleAction = new SwitchPageAction(_pageSwitcher, null, this);
         var context = new IntegrationContext(_pageSwitcher, this);
         var sonarAddress = _registry.Get<SonarIntegration>()?.Address;
 
@@ -106,7 +109,8 @@ public class PadService : IPadNotifier
                 if (binding.Target.Contains("{sonar}") && sonarAddress is not null)
                     binding.Target = binding.Target.Replace("{sonar}", sonarAddress);
 
-                var action = _registry.CreateAction(binding.Type, binding, context);
+                var bindingContext = binding.Notifications ? context : context with { Notifier = null };
+                var action = _registry.CreateAction(binding.Type, binding, bindingContext);
                 if (action is not null) bitActions[bit] = action;
             }
 
@@ -116,7 +120,8 @@ public class PadService : IPadNotifier
             foreach (var (key, enc) in page.Encoders)
             {
                 if (!int.TryParse(key, out var idx)) continue;
-                var action = _registry.CreateEncoderAction(enc.Type, enc, context);
+                var encContext = enc.Notifications ? context : context with { Notifier = null };
+                var action = _registry.CreateEncoderAction(enc.Type, enc, encContext);
                 if (action is not null) encoderActions[idx] = action;
             }
 
@@ -209,6 +214,8 @@ public class PadService : IPadNotifier
 
     public void ShowNotification(string text)
     {
+        OverlayNotifier.Show(text, _notificationSettings);
+
         if (_currentProfile != PadProfile.TenKeyScreen) return;
 
         var bytes = System.Text.Encoding.ASCII.GetBytes(ToAsciiSafe(text));

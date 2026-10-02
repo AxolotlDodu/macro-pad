@@ -67,9 +67,10 @@ public class SoundboardIntegration : IIntegration
 
     public IAction? CreateAction(string type, BindingConfig config, IntegrationContext context) => type switch
     {
-        "soundboard-play" => new SoundboardPlayAction(_client, config.Target),
+        "soundboard-play" => new SoundboardPlayAction(_client, config.Target,
+            LoadSounds(_soundsPath).GetValueOrDefault(config.Target, config.Target), context.Notifier),
         "soundboard-toggle-mute" => new SoundboardMuteToggleAction(_client, context.Notifier),
-        "soundboard-stop-all" => new SoundboardStopAllAction(_client),
+        "soundboard-stop-all" => new SoundboardStopAllAction(_client, context.Notifier),
         _ => null
     };
 

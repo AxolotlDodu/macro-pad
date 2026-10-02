@@ -43,8 +43,8 @@
                 <TextBlock DockPanel.Dock="Top" Text="Pages"
                            FontSize="20" FontWeight="Bold"
                            Foreground="#CDD6F4" Margin="0,0,0,12"/>
-                <Button x:Name="ChangeProfileButton" DockPanel.Dock="Top"
-                    Content="Changer de version de pad" Click="OnChangeProfileClick"
+                <Button x:Name="SettingsButton" DockPanel.Dock="Top"
+                    Content="⚙ Paramètres" Click="OnSettingsClick"
                     HorizontalAlignment="Stretch" Background="#45475A" Foreground="#CDD6F4"
                     Padding="8" Margin="0,0,0,12"/>
                 <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">

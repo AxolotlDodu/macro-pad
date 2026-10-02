@@ -12,6 +12,7 @@ public class BindingConfig
     public string? Body { get; set; }
     public List<string>? Devices { get; set; } // pour sonar-cycle-output / sonar-cycle-mic (liste explicite)
     public List<string>? ExcludedDevices { get; set; } // périphériques à exclure du cycle (id ou nom, substring)
+    public bool Notifications { get; set; } = true;
 }
 
 public class EncoderConfig
@@ -22,6 +23,7 @@ public class EncoderConfig
     public string Target { get; set; } = "";
     /// <summary>Pas de volume par cran (0.0 - 1.0). Défaut 0.05 = 5%.</summary>
     public double Step { get; set; } = 0.05;
+    public bool Notifications { get; set; } = true;
 }
 
 /// <summary>
@@ -56,6 +58,18 @@ public class PageConfig : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 }
 
+public class NotificationSettings
+{
+    /// <summary>TopLeft, TopCenter, TopRight, BottomLeft, BottomCenter, BottomRight</summary>
+    public string Position { get; set; } = "BottomRight";
+    public int Width { get; set; } = 280;
+    public int Height { get; set; } = 64;
+    public int Margin { get; set; } = 24;
+    public int DurationMs { get; set; } = 1500;
+    public string Background { get; set; } = "#1E1E2E";
+    public string Foreground { get; set; } = "#CDD6F4";
+}
+
 public class Config
 {
     public List<PageConfig> Pages { get; set; } = new();
@@ -78,6 +92,8 @@ public class Config
     }
 
     public int PageSwitchBit { get; set; } = 11; // touche 12 par défaut, bas à droite
+
+    public NotificationSettings Notification { get; set; } = new();
 
     /// <summary>Client ID de l'application Discord (portail développeur), pour le RPC local.</summary>
     public string? DiscordClientId { get; set; }

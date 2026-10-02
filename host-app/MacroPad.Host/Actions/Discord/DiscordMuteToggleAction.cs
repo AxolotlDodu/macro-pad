@@ -4,7 +4,13 @@ public class DiscordMuteToggleAction : IAction
 {
     private readonly DiscordRpcClient _client;
 
-    public DiscordMuteToggleAction(DiscordRpcClient client) => _client = client;
+    private readonly IPadNotifier? _notifier;
+
+    public DiscordMuteToggleAction(DiscordRpcClient client, IPadNotifier? notifier = null)
+    {
+        _client = client;
+        _notifier = notifier;
+    }
 
     public void Execute() => _ = ToggleAsync();
 
@@ -13,6 +19,7 @@ public class DiscordMuteToggleAction : IAction
         if (!await _client.EnsureReadyAsync())
         {
             Console.WriteLine("[DiscordMute] Discord RPC indisponible.");
+            _notifier?.ShowNotification("Discord : indisponible");
             return;
         }
 
@@ -27,6 +34,8 @@ public class DiscordMuteToggleAction : IAction
         var data = await _client.SetVoiceSettingsAsync(mute: newMute, deaf: newDeaf);
         if (data is null) return;
 
-        Console.WriteLine($"[DiscordMute] mute={data.Value.GetProperty("mute").GetBoolean()} deaf={data.Value.GetProperty("deaf").GetBoolean()}");
+        var isMuted = data.Value.GetProperty("mute").GetBoolean();
+        Console.WriteLine($"[DiscordMute] mute={isMuted} deaf={data.Value.GetProperty("deaf").GetBoolean()}");
+        _notifier?.ShowNotification($"Discord : {(isMuted ? "Mute" : "Micro actif")}");
     }
 }

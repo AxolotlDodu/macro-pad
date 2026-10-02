@@ -19,9 +19,9 @@ internal static class SonarVolumeState
 
         double volume = 0.5;
 
-        if (slider is null) // mode classique : lecture initiale possible
+                try
         {
-            try
+            if (slider is null)
             {
                 var json = await client.GetStringAsync($"http://{address}/volumeSettings/classic");
                 using var doc = JsonDocument.Parse(json);
@@ -29,13 +29,26 @@ internal static class SonarVolumeState
                     .GetProperty("devices").GetProperty(channel)
                     .GetProperty("classic").GetProperty("volume").GetDouble();
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"[SonarVolume] Lecture initiale impossible pour \"{channel}\" (défaut 0.5) : {ex.Message}");
+                var json = await client.GetStringAsync($"http://{address}/volumeSettings/streamer");
+                using var doc = JsonDocument.Parse(json);
+                var sliderKey = slider == "streaming" ? "stream" : "monitoring";
+
+                JsonElement node;
+                if (!doc.RootElement.GetProperty("devices").TryGetProperty(channel, out node))
+                    node = doc.RootElement.GetProperty("masters"); // master en streamer
+
+                if (!node.TryGetProperty(sliderKey, out var sliderNode) && !node.TryGetProperty(slider, out sliderNode))
+                    throw new KeyNotFoundException($"slider \"{slider}\" introuvable");
+
+                volume = sliderNode.GetProperty("volume").GetDouble();
             }
         }
-        // Mode streamer : pas de lecture initiale implémentée (structure JSON non confirmée),
-        // on part de 0.5 puis le cache se resynchronise après le premier réglage.
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SonarVolume] Lecture initiale impossible pour \"{channel}\"{(slider is null ? "" : $"/{slider}")} (défaut 0.5) : {ex.Message}");
+        }
 
         lock (Lock) { Cache[key] = volume; }
         return volume;

@@ -21,11 +21,11 @@ public class CoreIntegration : IIntegration
 
     public IAction? CreateAction(string type, BindingConfig config, IntegrationContext context) => type switch
     {
-        "launch" => new LaunchAction(config.Target),
-        "url" => new UrlAction(config.Target),
-        "keystroke" => new KeystrokeAction(config.Target),
+        "launch" => new LaunchAction(config.Target, context.Notifier),
+        "url" => new UrlAction(config.Target, context.Notifier),
+        "keystroke" => new KeystrokeAction(config.Target, context.Notifier),
         "http" => new HttpAction(config.Method, config.Target, config.Body),
-        "switch-page" => context.PageSwitcher is not null ? new SwitchPageAction(context.PageSwitcher, config.Target) : null,
+        "switch-page" => context.PageSwitcher is not null ? new SwitchPageAction(context.PageSwitcher, config.Target, context.Notifier) : null,
         _ => null
     };
 

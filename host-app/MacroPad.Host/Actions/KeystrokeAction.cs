@@ -7,9 +7,13 @@ public class KeystrokeAction : IAction, IDisposable
 {
     private readonly KeyCode[] _keys;
     private readonly EventSimulator _simulator = EventSimulator.Create("MacroPad.Host");
+    private readonly string _label;
+    private readonly IPadNotifier? _notifier;
 
-    public KeystrokeAction(string target)
+    public KeystrokeAction(string target, IPadNotifier? notifier = null)
     {
+        _label = target;
+        _notifier = notifier;
         _keys = target.Split('+', StringSplitOptions.TrimEntries)
                        .Select(ParseKey)
                        .ToArray();
@@ -18,6 +22,7 @@ public class KeystrokeAction : IAction, IDisposable
     public void Execute()
     {
         _simulator.SimulateKeyStroke(_keys);
+        _notifier?.ShowNotification($"Raccourci : {_label}");
     }
 
     public void Dispose() => _simulator.Dispose();

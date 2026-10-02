@@ -39,8 +39,8 @@ public class DiscordIntegration : IIntegration
         if (_client is null) return null;
         return type switch
         {
-            "discord-toggle-mute" => new DiscordMuteToggleAction(_client),
-            "discord-toggle-deafen" => new DiscordDeafenToggleAction(_client),
+            "discord-toggle-mute" => new DiscordMuteToggleAction(_client, context.Notifier),
+            "discord-toggle-deafen" => new DiscordDeafenToggleAction(_client, context.Notifier),
             _ => null
         };
     }
