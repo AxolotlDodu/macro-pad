@@ -34,6 +34,8 @@ public partial class EncoderEditWindow : Window
     public double RotationStep { get; private set; } = 0.05;
     public bool ClickNotifications { get; private set; } = true;
     public bool RotationNotifications { get; private set; } = true;
+    public bool ClickPadNotifications { get; private set; } = true;
+    public bool RotationPadNotifications { get; private set; } = true;
 
     public EncoderEditWindow(
         string label,
@@ -42,7 +44,8 @@ public partial class EncoderEditWindow : Window
         IReadOnlyList<string> pageNames,
         IReadOnlyList<ActionTypeDescriptor> clickActionTypes,
         IReadOnlyList<ActionTypeDescriptor> rotationActionTypes,
-        bool currentClickNotifications = true, bool currentRotationNotifications = true)
+        bool currentClickNotifications = true, bool currentRotationNotifications = true,
+        bool currentClickPadNotifications = true, bool currentRotationPadNotifications = true)
     {
         _pageNames = pageNames;
         _clickDescriptors = clickActionTypes;
@@ -74,6 +77,8 @@ public partial class EncoderEditWindow : Window
         _headerText.Text = label;
         this.FindControl<CheckBox>("ClickNotificationsBox")!.IsChecked = currentClickNotifications;
         this.FindControl<CheckBox>("RotationNotificationsBox")!.IsChecked = currentRotationNotifications;
+        this.FindControl<CheckBox>("ClickPadNotificationsBox")!.IsChecked = currentClickPadNotifications;
+        this.FindControl<CheckBox>("RotationPadNotificationsBox")!.IsChecked = currentRotationPadNotifications;
 
         _clickIntegrationBox.ItemsSource = _clickTopLevel;
         _clickIntegrationBox.SelectedItem = ActionMenuBuilder.ResolveTopLevel(_clickTopLevel, _clickDescriptors, currentClickType) ?? _clickTopLevel[0];
@@ -153,6 +158,7 @@ public partial class EncoderEditWindow : Window
 
         _clickMethodPanel.IsVisible = descriptor?.SupportsHttpMethod ?? false;
         this.FindControl<CheckBox>("ClickNotificationsBox")!.IsVisible = descriptor?.Id != "http";
+        this.FindControl<CheckBox>("ClickPadNotificationsBox")!.IsVisible = descriptor?.Id is not ("http" or "switch-page");
 
         if (target == TargetKind.PageCombo)
         {
@@ -237,6 +243,8 @@ public partial class EncoderEditWindow : Window
 
         ClickNotifications = this.FindControl<CheckBox>("ClickNotificationsBox")!.IsChecked == true;
         RotationNotifications = this.FindControl<CheckBox>("RotationNotificationsBox")!.IsChecked == true;
+        ClickPadNotifications = this.FindControl<CheckBox>("ClickPadNotificationsBox")!.IsChecked == true;
+        RotationPadNotifications = this.FindControl<CheckBox>("RotationPadNotificationsBox")!.IsChecked == true;
 
         Confirmed = true;
         Close();

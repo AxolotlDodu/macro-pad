@@ -30,10 +30,11 @@ public partial class BindingEditWindow : Window
     public double ResultStep { get; private set; } = 0.05;
     public List<string> ResultExcludedDevices { get; private set; } = new();
     public bool ResultNotifications { get; private set; } = true;
+    public bool ResultPadNotifications { get; private set; } = true;
 
     public BindingEditWindow(BindingEditMode mode, string label, string currentType, string currentTarget,
         string currentMethod, double currentStep, IReadOnlyList<string> excludedDevices, IReadOnlyList<string> pageNames,
-        IReadOnlyList<ActionTypeDescriptor> actionTypes, bool currentNotifications = true)
+        IReadOnlyList<ActionTypeDescriptor> actionTypes, bool currentNotifications = true, bool currentPadNotifications = true)
     {
         _mode = mode;
         _pageNames = pageNames;
@@ -58,6 +59,7 @@ public partial class BindingEditWindow : Window
 
         _headerText.Text = label;
         this.FindControl<CheckBox>("NotificationsBox")!.IsChecked = currentNotifications;
+        this.FindControl<CheckBox>("PadNotificationsBox")!.IsChecked = currentPadNotifications;
 
         _integrationBox.ItemsSource = _topLevelItems;
         _integrationBox.SelectedItem = ActionMenuBuilder.ResolveTopLevel(_topLevelItems, _descriptors, currentType) ?? _topLevelItems[0];
@@ -106,6 +108,7 @@ public partial class BindingEditWindow : Window
         _stepPanel.IsVisible = _mode == BindingEditMode.Encoder;
         _methodPanel.IsVisible = descriptor?.SupportsHttpMethod ?? false;
         this.FindControl<CheckBox>("NotificationsBox")!.IsVisible = descriptor?.Id != "http";
+        this.FindControl<CheckBox>("PadNotificationsBox")!.IsVisible = descriptor?.Id is not ("http" or "switch-page");
 
         if (target == TargetKind.PageCombo)
         {
@@ -167,6 +170,7 @@ public partial class BindingEditWindow : Window
         ResultStep = step;
 
         ResultNotifications = this.FindControl<CheckBox>("NotificationsBox")!.IsChecked == true;
+        ResultPadNotifications = this.FindControl<CheckBox>("PadNotificationsBox")!.IsChecked == true;
 
         Confirmed = true;
         Close();

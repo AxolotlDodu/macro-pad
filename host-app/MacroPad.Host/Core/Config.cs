@@ -13,6 +13,7 @@ public class BindingConfig
     public List<string>? Devices { get; set; } // pour sonar-cycle-output / sonar-cycle-mic (liste explicite)
     public List<string>? ExcludedDevices { get; set; } // périphériques à exclure du cycle (id ou nom, substring)
     public bool Notifications { get; set; } = true;
+    public bool PadNotifications { get; set; } = true;
 }
 
 public class EncoderConfig
@@ -24,6 +25,7 @@ public class EncoderConfig
     /// <summary>Pas de volume par cran (0.0 - 1.0). Défaut 0.05 = 5%.</summary>
     public double Step { get; set; } = 0.05;
     public bool Notifications { get; set; } = true;
+    public bool PadNotifications { get; set; } = true;
 }
 
 /// <summary>
@@ -66,6 +68,8 @@ public class NotificationSettings
     public int Height { get; set; } = 64;
     public int Margin { get; set; } = 24;
     public int DurationMs { get; set; } = 1500;
+    /// <summary>Notification (écran PC) lors d'un changement de page via la touche réservée.</summary>
+    public bool PageSwitchNotification { get; set; } = true;
     public string Background { get; set; } = "#1E1E2E";
     public string Foreground { get; set; } = "#CDD6F4";
 }

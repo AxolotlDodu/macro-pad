@@ -231,7 +231,8 @@ public partial class ConfigWindow : Window
             existing?.ExcludedDevices ?? new List<string>(),
             _pages.Select(p => p.Name).ToList(),
             _buttonActionTypes,
-            existing?.Notifications ?? true);
+            existing?.Notifications ?? true,
+            existing?.PadNotifications ?? true);
 
         await dlg.ShowDialog(this);
         if (!dlg.Confirmed) return;
@@ -245,7 +246,8 @@ public partial class ConfigWindow : Window
                 Target = dlg.ResultTarget,
                 Method = dlg.ResultMethod,
                 ExcludedDevices = dlg.ResultExcludedDevices.Count > 0 ? dlg.ResultExcludedDevices : null,
-                Notifications = dlg.ResultNotifications
+                Notifications = dlg.ResultNotifications,
+                PadNotifications = dlg.ResultPadNotifications
             };
 
         RefreshPadButtons(_currentPage);
@@ -275,7 +277,9 @@ public partial class ConfigWindow : Window
             _buttonActionTypes,
             _encoderActionTypes,
             existingClick?.Notifications ?? true,
-            existingRotation?.Notifications ?? true);
+            existingRotation?.Notifications ?? true,
+            existingClick?.PadNotifications ?? true,
+            existingRotation?.PadNotifications ?? true);
 
         await dlg.ShowDialog(this);
         if (!dlg.Confirmed) return;
@@ -289,7 +293,8 @@ public partial class ConfigWindow : Window
                 Target = dlg.ClickTarget,
                 Method = dlg.ClickMethod,
                 ExcludedDevices = dlg.ClickExcludedDevices.Count > 0 ? dlg.ClickExcludedDevices : null,
-                Notifications = dlg.ClickNotifications
+                Notifications = dlg.ClickNotifications,
+                PadNotifications = dlg.ClickPadNotifications
             };
 
         if (dlg.RotationType == "none")
@@ -300,7 +305,8 @@ public partial class ConfigWindow : Window
                 Type = dlg.RotationType,
                 Target = dlg.RotationTarget,
                 Step = dlg.RotationStep,
-                Notifications = dlg.RotationNotifications
+                Notifications = dlg.RotationNotifications,
+                PadNotifications = dlg.RotationPadNotifications
             };
 
         RefreshPadButtons(_currentPage);

@@ -54,6 +54,7 @@ public partial class SettingsWindow : Window
         _heightBox.Text = _original.Height.ToString(CultureInfo.InvariantCulture);
         _marginBox.Text = _original.Margin.ToString(CultureInfo.InvariantCulture);
         _durationBox.Text = _original.DurationMs.ToString(CultureInfo.InvariantCulture);
+        this.FindControl<CheckBox>("PageSwitchNotifBox")!.IsChecked = _original.PageSwitchNotification;
         _bgBox.Text = _original.Background;
         _fgBox.Text = _original.Foreground;
 
@@ -97,7 +98,8 @@ public partial class SettingsWindow : Window
         Margin = ParseInt(_marginBox.Text, _original.Margin, 0, 500),
         DurationMs = ParseInt(_durationBox.Text, _original.DurationMs, 300, 30000),
         Background = ParseColor(_bgBox.Text, _original.Background),
-        Foreground = ParseColor(_fgBox.Text, _original.Foreground)
+        Foreground = ParseColor(_fgBox.Text, _original.Foreground),
+        PageSwitchNotification = this.FindControl<CheckBox>("PageSwitchNotifBox")!.IsChecked == true
     };
 
     private void OnTestClick(object? sender, RoutedEventArgs e) =>

@@ -62,7 +62,8 @@
                     </ComboBox>
                 </StackPanel>
 
-                <CheckBox x:Name="ClickNotificationsBox" Content="Notifications" IsChecked="True" Foreground="#CDD6F4"/>
+                <CheckBox x:Name="ClickNotificationsBox" Content="Notification écran PC" IsChecked="True" Foreground="#CDD6F4"/>
+                <CheckBox x:Name="ClickPadNotificationsBox" Content="Notification écran MacroPad" IsChecked="True" Foreground="#CDD6F4"/>
             </StackPanel>
         </Border>
 
@@ -91,7 +92,8 @@
                     <TextBox x:Name="RotationStepBox"/>
                 </StackPanel>
 
-                <CheckBox x:Name="RotationNotificationsBox" Content="Notifications" IsChecked="True" Foreground="#CDD6F4"/>
+                <CheckBox x:Name="RotationNotificationsBox" Content="Notification écran PC" IsChecked="True" Foreground="#CDD6F4"/>
+                <CheckBox x:Name="RotationPadNotificationsBox" Content="Notification écran MacroPad" IsChecked="True" Foreground="#CDD6F4"/>
             </StackPanel>
         </Border>
 

@@ -88,7 +88,10 @@ public class PadService : IPadNotifier
 
         var bitActionsByPage = new Dictionary<string, Dictionary<int, IAction>>();
         var encoderActionsByPage = new Dictionary<string, Dictionary<int, IEncoderAction>>();
-        var cycleAction = new SwitchPageAction(_pageSwitcher, null, this);
+        IPadNotifier? cycleNotifier = config.Notification.PageSwitchNotification
+            ? new FilteredNotifier(this, true, false)
+            : null;
+        var cycleAction = new SwitchPageAction(_pageSwitcher, null, cycleNotifier);
         var context = new IntegrationContext(_pageSwitcher, this);
         var sonarAddress = _registry.Get<SonarIntegration>()?.Address;
 
@@ -109,7 +112,10 @@ public class PadService : IPadNotifier
                 if (binding.Target.Contains("{sonar}") && sonarAddress is not null)
                     binding.Target = binding.Target.Replace("{sonar}", sonarAddress);
 
-                var bindingContext = binding.Notifications ? context : context with { Notifier = null };
+                var padNotif = binding.PadNotifications && binding.Type != "switch-page";
+                var bindingContext = (binding.Notifications || padNotif)
+                    ? context with { Notifier = new FilteredNotifier(this, binding.Notifications, padNotif) }
+                    : context with { Notifier = null };
                 var action = _registry.CreateAction(binding.Type, binding, bindingContext);
                 if (action is not null) bitActions[bit] = action;
             }
@@ -120,7 +126,9 @@ public class PadService : IPadNotifier
             foreach (var (key, enc) in page.Encoders)
             {
                 if (!int.TryParse(key, out var idx)) continue;
-                var encContext = enc.Notifications ? context : context with { Notifier = null };
+                var encContext = (enc.Notifications || enc.PadNotifications)
+                    ? context with { Notifier = new FilteredNotifier(this, enc.Notifications, enc.PadNotifications) }
+                    : context with { Notifier = null };
                 var action = _registry.CreateEncoderAction(enc.Type, enc, encContext);
                 if (action is not null) encoderActions[idx] = action;
             }
@@ -212,11 +220,13 @@ public class PadService : IPadNotifier
         WriteOutputReport(report);
     }
 
-    public void ShowNotification(string text)
-    {
-        OverlayNotifier.Show(text, _notificationSettings);
+    public void ShowNotification(string text) => ShowNotification(text, true, true);
 
-        if (_currentProfile != PadProfile.TenKeyScreen) return;
+    public void ShowNotification(string text, bool pc, bool pad)
+    {
+        if (pc) OverlayNotifier.Show(text, _notificationSettings);
+
+        if (!pad || _currentProfile != PadProfile.TenKeyScreen) return;
 
         var bytes = System.Text.Encoding.ASCII.GetBytes(ToAsciiSafe(text));
         var len = Math.Min(bytes.Length, 20);
@@ -227,6 +237,11 @@ public class PadService : IPadNotifier
         Array.Copy(bytes, 0, report, 2, len);
 
         WriteOutputReport(report);
+    }
+
+    private sealed class FilteredNotifier(PadService service, bool pc, bool pad) : IPadNotifier
+    {
+        public void ShowNotification(string text) => service.ShowNotification(text, pc, pad);
     }
 
     private async Task TimeBroadcastLoopAsync()
